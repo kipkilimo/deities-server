@@ -5,6 +5,11 @@ const userTypeDefs = gql`
     id: ID!
     username: String! 
     email: String!
+    activationToken: String 
+    resetToken: String 
+    tokenExpiry: String 
+
+
   }
 
   type Query {
@@ -15,6 +20,9 @@ const userTypeDefs = gql`
   type Mutation {
     register(username: String!, email: String!, password: String!): User
     login(email: String!, password: String!): String
+    activate(email: String!): String
+    resetPassword(password: String!): String
+    requestPasswordReset(email: String!): String
     updateUser(id: ID!, username: String, email: String): User
     deleteUser(id: ID!): User
   }
