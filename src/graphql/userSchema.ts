@@ -1,4 +1,4 @@
-import { gql } from 'graphql-tag';
+import { gql } from 'graphql-tag'; 
 
 const userTypeDefs = gql`
   type User {
@@ -8,10 +8,14 @@ const userTypeDefs = gql`
     activationToken: String 
     resetToken: String 
     tokenExpiry: String 
+    activatedAccount: Boolean
 
 
   }
-
+type LoginResponse {
+  user: User!
+  accessToken: String!
+}
   type Query {
     getUser(id: ID!): User
     getUsers: [User]
@@ -19,10 +23,10 @@ const userTypeDefs = gql`
 
   type Mutation {
     register(username: String!, email: String!, password: String!): User
-    login(email: String!, password: String!): String
-    activate(email: String!): String
-    resetPassword(password: String!): String
-    requestPasswordReset(email: String!): String
+    login(email: String!, password: String!): LoginResponse
+    activate(email: String!): LoginResponse
+    resetPassword(activationToken: String!,password: String!): LoginResponse
+    requestPasswordReset(email: String!): User
     updateUser(id: ID!, username: String, email: String): User
     deleteUser(id: ID!): User
   }

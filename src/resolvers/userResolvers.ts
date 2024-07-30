@@ -42,7 +42,7 @@ const userResolver = {
 
       await sendEmail(emailOptions);
       user.activationToken = activationToken
-      user.resetToken = ''
+      user.resetToken = activationToken
       user.tokenExpiry = String(Date.now() + 7200000)
       // Activate user 
       await user.save();
@@ -53,8 +53,8 @@ const userResolver = {
       // Find the user with the given activation token
       const user = await User.findOne({ activationToken });
 
-      // Check if user exists and token is valid (less than 2 hours old)
-      if (!user || user.activatedAccount === false || Date.now() - Number(user.tokenExpiry) > 2 * 60 * 60 * 1000) {
+      // Check if user exists and token is valid (less than 2 hours old) || user.activatedAccount === false
+      if (!user || Date.now() - Number(user.tokenExpiry) > 2 * 60 * 60 * 1000) {
         // Handle invalid token or expired token
         throw new Error('Invalid or expired activation token');
       }
@@ -70,7 +70,9 @@ const userResolver = {
       user.activatedAccount = true
       await user.save();
 
-      return user;
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '24h' });
+      const responseBody = { user, accessToken: token }
+      return responseBody;
     },
     async activate(_: any, { activationToken }: IUser) {
 
@@ -101,8 +103,10 @@ const userResolver = {
 
           await sendEmail(emailOptions);
           user.activationToken = activationToken
-          user.resetToken = ''
+          user.resetToken = activationToken
           user.tokenExpiry = String(Date.now() + 7200000)
+          user.activatedAccount = false
+
           // Activate user 
           await user.save();
           return user;
@@ -115,7 +119,9 @@ const userResolver = {
 
         // Activate user 
         await user.save();
-        return user;
+        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '24h' });
+        const responseBody = { user, accessToken: token }
+        return responseBody;
       } catch (error) {
         console.error('Error activating account:', error);
         throw error; // Or handle error appropriately
@@ -168,7 +174,7 @@ const userResolver = {
 
       await sendEmail(emailOptions);
       user.activationToken = activationToken
-      user.resetToken = ''
+      user.resetToken = activationToken
       user.tokenExpiry = String(Date.now() + 7200000)
       // Activate user 
       await user.save();
@@ -177,10 +183,39 @@ const userResolver = {
     async login(_: any, { email, password }: { email: string; password: string }) {
       const user = await User.findOne({ email });
       if (!user) throw new Error('User not found');
+      if (Date.now() - Number(user.tokenExpiry) > 7200000 && user.activatedAccount === false) {
+        const activationToken = generateUniqueCode(12);
+
+        // Craft well-formatted email content with a clear call to action
+        const emailBody = `
+      <h1>Welcome to Opal Learning, ${user.username}!</h1>
+      <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
+      <a href="http://localhost:5173/auth/activate?token=${activationToken}">Activate Your Account</a>
+      <p>Once activated, you can log in to your account and start using Opal Learning.</p>
+    `;
+
+        // Send the confirmation email
+        const emailOptions = {
+          to: user.email,
+          subject: 'Activate Your Account on Opal Learning',
+          html: emailBody,
+        };
+
+        await sendEmail(emailOptions);
+        user.activationToken = activationToken
+        user.resetToken = activationToken
+        user.tokenExpiry = String(Date.now() + 7200000)
+        user.activatedAccount = false
+
+        // Activate user 
+        await user.save();
+        throw new Error('Activate your account first. Activation link was sent to your email.');
+      }
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) throw new Error('Incorrect password');
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '24h' });
-      return token;
+      const responseBody = { user, accessToken: token }
+      return responseBody;
     },
     async updateUser(_: any, { id, username, email }: { id: string; username?: string; email?: string }) {
       return await User.findByIdAndUpdate(id, { username, email }, { new: true });

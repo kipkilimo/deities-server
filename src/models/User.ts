@@ -25,17 +25,16 @@ const UserSchema: Schema = new Schema({
   },
   activationToken: {
     type: String,
-    required: true,
+    default: '',
   },
   resetToken: {
     type: String,
-    required: true,
+    default: '',
   },
   tokenExpiry: {
     type: String,
-    required: true,
+    default: '',
   },
-
 
   password: {
     type: String,
