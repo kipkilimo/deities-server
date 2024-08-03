@@ -35,6 +35,7 @@ const paperTypeDefs = gql`
   type Query {
     getPaper(id: ID!): Paper
     getPapers: [Paper]
+    getMostRecentPaper: Paper
   }
 
   type Mutation {

@@ -8,10 +8,13 @@ import { expressMiddleware } from '@apollo/server/express4';
 import { json } from 'body-parser';
 import userTypeDefs from './graphql/userSchema';
 import deityTypeDefs from './graphql/deitySchema';
+import paperTypeDefs from "./graphql/paperSchema";
+
 import fileRoutes from "../src/routes/fileRoutes"; // Adjust the path as necessary
 
 import userResolver from "../src/resolvers/userResolvers";
 import deityResolver from "../src/resolvers/deityResolvers";
+import paperResolver from "../src/resolvers/paperResolvers";
 
 import connectDB from "../src/database/connection";
 import auth from "../src/middleware/auth";
@@ -33,8 +36,8 @@ const startServer = async () => {
   app.use(auth);
 
   const server = new ApolloServer({
-    typeDefs: [userTypeDefs, deityTypeDefs],
-    resolvers: [userResolver, deityResolver],
+    typeDefs: [userTypeDefs, deityTypeDefs, paperTypeDefs],
+    resolvers: [userResolver, deityResolver, paperResolver],
     csrfPrevention: true,
     introspection: true,
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground({})],
