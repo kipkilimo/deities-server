@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { Role } from '../utils/enums'; // Import the Locality enum
 
 export interface IUser extends Document {
   username: string;
@@ -18,6 +19,11 @@ const UserSchema: Schema = new Schema({
     type: String,
     required: true,
     unique: true,
+  },
+  role: {
+    type: String,
+    enum: Object.values(Role),
+    default: 'STUDENT',
   },
   activatedAccount: {
     type: Boolean,

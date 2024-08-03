@@ -8,12 +8,13 @@ import { expressMiddleware } from '@apollo/server/express4';
 import { json } from 'body-parser';
 import userTypeDefs from './graphql/userSchema';
 import deityTypeDefs from './graphql/deitySchema';
+import fileRoutes from "../src/routes/fileRoutes"; // Adjust the path as necessary
 
-import userResolver from '../src/resolvers/userResolvers';
-import deityResolver from '../src/resolvers/deityResolvers';
+import userResolver from "../src/resolvers/userResolvers";
+import deityResolver from "../src/resolvers/deityResolvers";
 
-import connectDB from '../src/database/connection';
-import auth from '../src/middleware/auth';
+import connectDB from "../src/database/connection";
+import auth from "../src/middleware/auth";
 
 dotenv.config();
 
@@ -21,11 +22,13 @@ const startServer = async () => {
   const app = express();
   // Middleware to extract client's IP address
   // Configure CORS
-  app.use(cors({
-    origin: '*', // Allow all origins (change this to specific origins in production)
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  }));
+  app.use(
+    cors({
+      origin: "*", // Allow all origins (change this to specific origins in production)
+      methods: ["GET", "POST"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  );
 
   app.use(auth);
 
@@ -34,15 +37,16 @@ const startServer = async () => {
     resolvers: [userResolver, deityResolver],
     csrfPrevention: true,
     introspection: true,
-    plugins: [
-      ApolloServerPluginLandingPageGraphQLPlayground({})]
+    plugins: [ApolloServerPluginLandingPageGraphQLPlayground({})],
   });
 
   await server.start();
 
-  app.use('/graphql', json(), expressMiddleware(server));
+  app.use("/graphql", json(), expressMiddleware(server));
 
   connectDB();
+  // Use the file routes
+  app.use("/api", fileRoutes); // All routes in fileRoutes will be prefixed with /api
 
   app.listen({ port: process.env.PORT }, () =>
     console.log(`Server ready at http://localhost:${process.env.PORT}/graphql`)

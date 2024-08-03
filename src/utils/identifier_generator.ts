@@ -17,9 +17,4 @@ export function generateUniqueCode(length: number = 12): string {
   return result; 
 }
 
-// Example usage
-try {
-  console.log(generateUniqueCode(12)); // Outputs a unique code of length 20
-} catch (error) {
-  console.error(error);
-}
+

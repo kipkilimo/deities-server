@@ -5,5 +5,12 @@ export enum Locality {
   ROMAN = "ROMAN",
   EGYPTIAN = "EGYPTIAN",
   MESOAMERICAN = "MESOAMERICAN",
-  AFRICAN = "AFRICAN", 
+  AFRICAN = "AFRICAN",
+}
+
+export enum Role {
+  ADMIN = "ADMIN",
+  FACILITATOR = "FACILITATOR",
+  FACULTY = "FACULTY",
+  STUDENT = "STUDENT",
 }

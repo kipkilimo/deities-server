@@ -20,8 +20,8 @@ function generateUniqueCode(length) {
 }
 // Example usage
 try {
-    console.log(generateUniqueCode(12)); // Outputs a unique code of length 20
+    // console.log(generateUniqueCode(12)); // Outputs a unique code of length 20
 }
 catch (error) {
-    console.error(error.message);
+    // console.error(error.message);
 }
