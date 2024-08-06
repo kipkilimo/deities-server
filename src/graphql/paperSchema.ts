@@ -16,10 +16,16 @@ import { gql } from "graphql-tag";
 
 const paperTypeDefs = gql`
   type Discussion {
-    username: String
+    pageNumber: Int
     title: String
-    discussion: String
-    added: String
+    content: String
+    x: Int
+    y: Int
+    width: Int
+    height: Int
+    id: String
+    username: String
+    addedDate: String
   }
   type Paper {
     id: ID!

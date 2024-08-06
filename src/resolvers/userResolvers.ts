@@ -17,11 +17,11 @@ const userResolver = {
   Mutation: {
     // resetPassword
     async requestPasswordReset(_: any, { email }: IUser) {
-      const activationToken = generateUniqueCode(12)
+      const activationToken = generateUniqueCode(12);
 
       const user = await User.findOne({ email: email });
       if (!user) {
-        throw new Error('User not found.');
+        throw new Error("User not found.");
       }
 
       // Craft well-formatted email content with a clear call to action
@@ -36,51 +36,55 @@ const userResolver = {
       // Send the confirmation email
       const emailOptions = {
         to: user.email,
-        subject: 'Password Reset Request on Opal Learning',
+        subject: "Password Reset Request on Opal Learning",
         html: emailBody,
       };
 
       await sendEmail(emailOptions);
-      user.activationToken = activationToken
-      user.resetToken = activationToken
-      user.tokenExpiry = String(Date.now() + 7200000)
-      // Activate user 
+      user.activationToken = activationToken;
+      user.resetToken = activationToken;
+      user.tokenExpiry = String(Date.now() + 7200000);
+      // Activate user
       await user.save();
       return user;
     },
     async resetPassword(_: any, { activationToken, password }: IUser) {
-
       // Find the user with the given activation token
       const user = await User.findOne({ activationToken });
 
       // Check if user exists and token is valid (less than 2 hours old) || user.activatedAccount === false
       if (!user || Date.now() - Number(user.tokenExpiry) > 2 * 60 * 60 * 1000) {
         // Handle invalid token or expired token
-        throw new Error('Invalid or expired activation token');
+        throw new Error("Invalid or expired activation token");
       }
-
+      // Check if user exists and token is valid (less than 2 hours old) || user.activatedAccount === false
+      if (password.length < 6 || password.length > 12) {
+        // Handle invalid token or expired token
+        throw new Error("Add password 6-12 characters long");
+      }
       // Hash the new password
       const hashedPassword = await bcrypt.hash(password, 10); // Adjust salt rounds as needed
 
       // Update the user's password
       user.password = hashedPassword;
-      user.activationToken = ''
-      user.resetToken = ''
-      user.tokenExpiry = ''
-      user.activatedAccount = true
+      user.activationToken = "";
+      user.resetToken = "";
+      user.tokenExpiry = "";
+      user.activatedAccount = true;
       await user.save();
 
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '24h' });
-      const responseBody = { user, accessToken: token }
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+        expiresIn: "24h",
+      });
+      const responseBody = { user, accessToken: token };
       return responseBody;
     },
     async activate(_: any, { activationToken }: IUser) {
-
       try {
         // Find user by token
         let user = await User.findOne({ activationToken: activationToken });
         if (!user) {
-          throw new Error('Invalid activation token');
+          throw new Error("Invalid activation token");
         }
 
         if (Date.now() - Number(user.tokenExpiry) > 7200000) {
@@ -97,39 +101,40 @@ const userResolver = {
           // Send the confirmation email
           const emailOptions = {
             to: user.email,
-            subject: 'Activate Your Account on Opal Learning',
+            subject: "Activate Your Account on Opal Learning",
             html: emailBody,
           };
 
           await sendEmail(emailOptions);
-          user.activationToken = activationToken
-          user.resetToken = activationToken
-          user.tokenExpiry = String(Date.now() + 7200000)
-          user.activatedAccount = false
+          user.activationToken = activationToken;
+          user.resetToken = activationToken;
+          user.tokenExpiry = String(Date.now() + 7200000);
+          user.activatedAccount = false;
 
-          // Activate user 
+          // Activate user
           await user.save();
           return user;
         }
 
-        user.activationToken = ''
-        user.resetToken = ''
-        user.tokenExpiry = ''
-        user.activatedAccount = true
+        user.activationToken = "";
+        user.resetToken = "";
+        user.tokenExpiry = "";
+        user.activatedAccount = true;
 
-        // Activate user 
+        // Activate user
         await user.save();
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '24h' });
-        const responseBody = { user, accessToken: token }
+        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+          expiresIn: "24h",
+        });
+        const responseBody = { user, accessToken: token };
         return responseBody;
       } catch (error) {
-        console.error('Error activating account:', error);
+        console.error("Error activating account:", error);
         throw error; // Or handle error appropriately
       }
-
     },
     async register(_: any, { username, email, password }: IUser) {
-      let formattedUsername
+      let formattedUsername;
       function mergeStrings(str1: string, str2: string): string {
         const midpoint1 = Math.ceil(str1.length / 2);
         const midpoint2 = Math.floor(str2.length / 2);
@@ -141,10 +146,9 @@ const userResolver = {
       }
 
       function extractUsername(email: string): string {
-        const [emailPartOne] = email.split('@');
+        const [emailPartOne] = email.split("@");
         return emailPartOne;
       }
-
 
       const emailPart = extractUsername(email);
 
@@ -152,7 +156,11 @@ const userResolver = {
       console.log({ formattedUsername });
 
       const hashedPassword = await bcrypt.hash(password, 12);
-      const user = new User({ username: formattedUsername, email, password: hashedPassword });
+      const user = new User({
+        username: formattedUsername,
+        email,
+        password: hashedPassword,
+      });
       await user.save();
       // Generate unique activation token
       const activationToken = generateUniqueCode(12);
@@ -168,22 +176,28 @@ const userResolver = {
       // Send the confirmation email
       const emailOptions = {
         to: user.email,
-        subject: 'Activate Your Account on Opal Learning',
+        subject: "Activate Your Account on Opal Learning",
         html: emailBody,
       };
 
       await sendEmail(emailOptions);
-      user.activationToken = activationToken
-      user.resetToken = activationToken
-      user.tokenExpiry = String(Date.now() + 7200000)
-      // Activate user 
+      user.activationToken = activationToken;
+      user.resetToken = activationToken;
+      user.tokenExpiry = String(Date.now() + 7200000);
+      // Activate user
       await user.save();
       return user;
     },
-    async login(_: any, { email, password }: { email: string; password: string }) {
+    async login(
+      _: any,
+      { email, password }: { email: string; password: string }
+    ) {
       const user = await User.findOne({ email });
-      if (!user) throw new Error('User not found');
-      if (Date.now() - Number(user.tokenExpiry) > 7200000 && user.activatedAccount === false) {
+      if (!user) throw new Error("User not found");
+      if (
+        Date.now() - Number(user.tokenExpiry) > 7200000 &&
+        user.activatedAccount === false
+      ) {
         const activationToken = generateUniqueCode(12);
 
         // Craft well-formatted email content with a clear call to action
@@ -197,32 +211,43 @@ const userResolver = {
         // Send the confirmation email
         const emailOptions = {
           to: user.email,
-          subject: 'Activate Your Account on Opal Learning',
+          subject: "Activate Your Account on Opal Learning",
           html: emailBody,
         };
 
         await sendEmail(emailOptions);
-        user.activationToken = activationToken
-        user.resetToken = activationToken
-        user.tokenExpiry = String(Date.now() + 7200000)
-        user.activatedAccount = false
+        user.activationToken = activationToken;
+        user.resetToken = activationToken;
+        user.tokenExpiry = String(Date.now() + 7200000);
+        user.activatedAccount = false;
 
-        // Activate user 
+        // Activate user
         await user.save();
-        throw new Error('Activate your account first. Activation link was sent to your email.');
+        throw new Error(
+          "Activate your account first. Activation link was sent to your email."
+        );
       }
       const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) throw new Error('Incorrect password');
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '24h' });
-      const responseBody = { user, accessToken: token }
+      if (!isMatch) throw new Error("Incorrect password");
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+        expiresIn: "24h",
+      });
+      const responseBody = { user, accessToken: token };
       return responseBody;
     },
-    async updateUser(_: any, { id, username, email }: { id: string; username?: string; email?: string }) {
-      return await User.findByIdAndUpdate(id, { username, email }, { new: true });
+    async updateUser(
+      _: any,
+      { id, username, email }: { id: string; username?: string; email?: string }
+    ) {
+      return await User.findByIdAndUpdate(
+        id,
+        { username, email },
+        { new: true }
+      );
     },
     async deleteUser(_: any, { id }: { id: string }) {
       await User.findByIdAndDelete(id);
-      return 'User deleted';
+      return "User deleted";
     },
   },
 };

@@ -10,14 +10,31 @@ import mongoose, { Document, Mongoose, Schema, Types } from "mongoose";
   title: String!
   objective: String!
   url: String
-  discussion: [Discussion]
+  discussion: [
+  {
+  pageNumber: 2,
+  title: "Introduction Comment",
+  content: "This section discusses the key aspects of the introduction.",
+  x: 150,
+  y: 200,
+  width: 100,  // Optional: define if the highlight area is specific
+  height: 50,  // Optional: define if the highlight area is specific
+  id: "unique-id-12345"  // A unique identifier, e.g., generated using a UUID library
+}
+  ]
   createdDate: String 
   */
 interface Discussion {
-  username: String;
+  pageNumber: Number;
   title: String;
-  discussion: String;
-  added: String;
+  content: String;
+  x: Number;
+  y: Number;
+  width: Number; // Optional: define if the highlight area is specific
+  height: Number; // Optional: define if the highlight area is specific
+  id: String; // A unique identifier, e.g., generated using a UUID library
+  username: String;
+  addedDate: String;
 }
 export interface IPaper extends Document {
   title: String;
