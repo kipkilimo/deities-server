@@ -1,25 +1,32 @@
-import path from "path";
-import fs from "fs";
+import fs from "fs"; // Standard fs module for stream operations
+import fsPromises from "fs/promises"; // fs/promises for async file operations
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import mongoose from "mongoose";
 import { Request, Response } from "express";
-import Paper from "../models/Paper"; // Replace with your actual model
+import Paper from "../models/Paper";
 import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
 import multer from "multer";
 import { PDFImage } from "pdf-image";
 import os from "os";
+import path from "path";
 
 // Load environment variables
 dotenv.config();
 
+const { AWS_REGION, AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_BUCKET_NAME } =
+  process.env;
+
+if (!AWS_REGION || !AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_BUCKET_NAME) {
+  throw new Error("Missing AWS configuration in environment variables.");
+}
+
 // Configure the AWS SDK
-// @ts-ignore
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
+  region: AWS_REGION,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY,
-    secretAccessKey: process.env.AWS_SECRET_KEY,
+    accessKeyId: AWS_ACCESS_KEY,
+    secretAccessKey: AWS_SECRET_KEY,
   },
 });
 
@@ -28,15 +35,13 @@ interface ImageObject {
   image: string;
 }
 
-export const convertPdfToImages = async (
+const convertPdfToImages = async (
   pdfPath: string,
   outputPath: string,
   paperId: string
 ): Promise<void> => {
   try {
-    if (!fs.existsSync(outputPath)) {
-      fs.mkdirSync(outputPath, { recursive: true });
-    }
+    await fsPromises.mkdir(outputPath, { recursive: true });
 
     const pdfImage = new PDFImage(pdfPath, {
       outputDirectory: outputPath,
@@ -50,72 +55,61 @@ export const convertPdfToImages = async (
     console.log("PDF converted to images successfully.");
 
     const imageObjects: ImageObject[] = [];
-    const bucketName = process.env.AWS_BUCKET_NAME as string;
-    const region = process.env.AWS_REGION as string;
+    const bucketName = AWS_BUCKET_NAME;
+    const region = AWS_REGION;
 
-    // Store initial timestamp for consistent time-based naming
-    const initialTimestamp = Date.now();
+    for (let index = 0; index < imagePaths.length; index++) {
+      const imagePath = imagePaths[index];
+      try {
+        const fileStream = fs.createReadStream(imagePath);
+        const pageNumber = index + 1; // Page numbers are 1-based
+        const fileName = `page-${pageNumber}-${uuidv4()}.jpeg`;
 
-    await Promise.all(
-      imagePaths.map(async (imagePath, index) => {
-        try {
-          const fileStream = fs.createReadStream(imagePath);
-          const timestamp = initialTimestamp + index; // Sequential timestamps based on index
-          const fileName = `t-${timestamp}-page-${index + 1}-${uuidv4()}.jpeg`;
+        const uploadParams = {
+          Bucket: bucketName,
+          Key: `pdf-images/${fileName}`,
+          Body: fileStream,
+          ContentType: "image/jpeg",
+        };
 
-          const uploadParams = {
-            Bucket: bucketName,
-            Key: `pdf-images/${fileName}`,
-            Body: fileStream,
-            ContentType: "image/jpeg",
-          };
+        await s3Client.send(new PutObjectCommand(uploadParams));
+        const imageUrl = `https://${uploadParams.Bucket}.s3.${region}.amazonaws.com/${uploadParams.Key}`;
 
-          await s3Client.send(new PutObjectCommand(uploadParams));
-          const imageUrl = `https://${uploadParams.Bucket}.s3.${region}.amazonaws.com/${uploadParams.Key}`;
+        imageObjects.push({ number: pageNumber, image: imageUrl });
 
-          imageObjects.push({ number: index + 1, image: imageUrl });
-
-          fs.unlinkSync(imagePath);
-        } catch (err) {
-          console.error(`Error uploading image ${imagePath}:`, err);
-        }
-      })
-    );
-
-    console.log("Finding document with paperId:", paperId);
+        // Clean up local file asynchronously
+        await fsPromises.unlink(imagePath);
+      } catch (err) {
+        console.error(`Error uploading image ${imagePath}:`, err);
+      }
+    }
 
     const modelDocument = await Paper.findById(paperId);
     if (!modelDocument) {
       throw new Error("Document not found");
     }
 
-    function sortImagesByTimestamp(imageArray: ImageObject[]) {
-      const extractTimestamp = (url: string) => {
-        const match = url.match(/t-(\d+)-page/);
-        return match ? parseInt(match[1], 10) : null;
-      };
+    // Sort the imageObjects array by page number
+    imageObjects.sort((a, b) => a.number - b.number);
 
-      imageArray.sort((a, b) => {
-        const timestampA = extractTimestamp(a.image);
-        const timestampB = extractTimestamp(b.image);
-        return (timestampA || 0) - (timestampB || 0);
-      });
-
-      return imageArray;
-    }
-
-    const sortedArray = sortImagesByTimestamp(imageObjects);
-
-    modelDocument.url = JSON.stringify(sortedArray);
+    modelDocument.url = JSON.stringify(imageObjects);
     await modelDocument.save();
 
     console.log("Model updated with image URLs successfully.");
   } catch (error) {
     console.error("Error processing PDF:", error);
+  } finally {
+    try {
+      // Clean up the output directory
+      await fsPromises.rm(outputPath, { recursive: true, force: true });
+    } catch (cleanupError) {
+      console.error("Error during cleanup:", cleanupError);
+    }
   }
 };
 
-const upload = multer({ dest: os.tmpdir() });
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 export const handlePdfConversion = [
   upload.single("file"),
@@ -127,14 +121,23 @@ export const handlePdfConversion = [
       return res.status(400).send({ error: "No file uploaded." });
     }
 
-    const pdfPath = file.path;
-    const outputPath = path.join(os.tmpdir(), "output");
+    // Generate a unique file name for the temporary PDF file
+    const pdfPath = path.join(os.tmpdir(), `${uuidv4()}.pdf`);
 
     try {
+      // Write the buffer to a temporary file
+      await fsPromises.writeFile(pdfPath, file.buffer);
+
+      // Define the output path for the images
+      const outputPath = path.join(os.tmpdir(), `output-${uuidv4()}`);
+
+      // Convert the PDF to images
       await convertPdfToImages(pdfPath, outputPath, paperId);
 
-      fs.unlinkSync(pdfPath);
+      // Clean up the temporary PDF file
+      await fsPromises.unlink(pdfPath);
 
+      // Fetch the updated document
       const updatedDocument = await Paper.findById(paperId);
 
       res.status(200).send({

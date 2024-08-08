@@ -51,7 +51,7 @@ const startServer = async () => {
   connectDB();
   // Use the file routes
   app.use("/api", fileRoutes); // All routes in fileRoutes will be prefixed with /api
-  app.post("/convert-pdf", handlePdfConversion);
+  // app.post("/convert-pdf", handlePdfConversion);
 
   app.listen({ port: process.env.PORT }, () =>
     console.log(`Server ready at http://localhost:${process.env.PORT}/graphql`)
