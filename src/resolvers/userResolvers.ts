@@ -188,6 +188,13 @@ const userResolver = {
       await user.save();
       return user;
     },
+    async getCurrentUser(_: any, { sessionId }: { sessionId: string }) {
+      const user = await User.findOne({ _id: sessionId });
+      if (!user) throw new Error("User not found");
+      return user;
+    },
+    // getCurrentUser(sessionId: String!): User
+
     async login(
       _: any,
       { email, password }: { email: string; password: string }

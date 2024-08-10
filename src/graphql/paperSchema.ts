@@ -6,26 +6,30 @@ import { gql } from "graphql-tag";
   discussion: String
   added: String
 }
-    id: ID!
-  title: String!
-  objective: String!
-  url: String
-  discussion: [Discussion]
-  createdDate: String 
-  */
-
-const paperTypeDefs = gql`
-  type Discussion {
-    pageNumber: Int
+    page: Int
     title: String
-    content: String
+    text: String
     x: Int
     y: Int
     width: Int
     height: Int
     id: String
-    username: String
-    addedDate: String
+    author: String
+    timestamp: String
+  */
+
+const paperTypeDefs = gql`
+  type Discussion {
+    page: Int
+    title: String
+    text: String
+    x: Float
+    y: Float
+    width: Float
+    height: Float
+    id: ID!
+    author: String
+    timestamp: String
   }
   type Paper {
     id: ID!
@@ -47,7 +51,7 @@ const paperTypeDefs = gql`
   type Mutation {
     createPaper(createdBy: ID!, title: String!, objective: String!): Paper
 
-    addDiscussion(paperId: ID!, discussionItem: String!): Paper
+    addPaperDiscussion(discussionItem: String!): Paper
 
     updatePaper(
       id: ID!

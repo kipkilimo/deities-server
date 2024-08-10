@@ -12,29 +12,31 @@ import mongoose, { Document, Mongoose, Schema, Types } from "mongoose";
   url: String
   discussion: [
   {
-  pageNumber: 2,
-  title: "Introduction Comment",
-  content: "This section discusses the key aspects of the introduction.",
-  x: 150,
-  y: 200,
-  width: 100,  // Optional: define if the highlight area is specific
-  height: 50,  // Optional: define if the highlight area is specific
-  id: "unique-id-12345"  // A unique identifier, e.g., generated using a UUID library
+    page: Int
+    title: String
+    text: String
+    x: Int
+    y: Int
+    width: Int
+    height: Int
+    id: String
+    author: String
+    timestamp: String
+  
 }
   ]
   createdDate: String 
   */
 interface Discussion {
-  pageNumber: Number;
+  page: Number;
   title: String;
-  content: String;
+  text: String;
   x: Number;
   y: Number;
   width: Number; // Optional: define if the highlight area is specific
   height: Number; // Optional: define if the highlight area is specific
-  id: String; // A unique identifier, e.g., generated using a UUID library
-  username: String;
-  addedDate: String;
+  author: String;
+  timestamp: String;
 }
 export interface IPaper extends Document {
   title: String;
@@ -56,10 +58,15 @@ const PaperSchema: Schema = new Schema({
   },
   discussion: [
     {
-      username: String,
+      page: Number,
       title: String,
-      discussion: String,
-      added: String,
+      text: String,
+      x: Number,
+      y: Number,
+      width: Number, // Optional: define if the highlight area is specific
+      height: Number, // Optional: define if the highlight area is specific
+      author: String,
+      timestamp: String,
     },
   ],
   url: {

@@ -91,14 +91,23 @@ const paperResolver = {
       }
     },
 
-    async addDiscussion(
+    async addPaperDiscussion(
       _: any,
-      { id, discussionItem }: { id: string; discussionItem: string }
+      { discussionItem }: { discussionItem: string }
     ) {
-      const paper = await Paper.findOne({ id });
       let objJ = JSON.parse(discussionItem);
       objJ = objJ[0];
-      paper?.discussion.push(objJ);
+      console.log({ data: objJ.data });
+      const paper = await Paper.findOne({ _id: objJ.id });
+      // Check if the paper was found and updated
+      if (!paper) {
+        throw new Error("Paper not found");
+      }
+      if (paper.discussion.length >= 30) {
+        throw new Error("Cannot add more discussions tot this article.");
+      }
+
+      paper?.discussion.push(objJ.data);
       paper?.save();
       return paper;
     },
