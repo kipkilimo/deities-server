@@ -8,6 +8,7 @@ const userTypeDefs = gql`
     activationToken: String
     resetToken: String
     tokenExpiry: String
+    role: String!
     activatedAccount: Boolean
   }
   type LoginResponse {

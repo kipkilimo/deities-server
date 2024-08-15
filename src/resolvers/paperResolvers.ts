@@ -106,9 +106,15 @@ const paperResolver = {
       if (paper.discussion.length >= 30) {
         throw new Error("Cannot add more discussions tot this article.");
       }
-
+      const comments = paper.discussion;
+      const userComments = comments.filter(
+        (comment) => comment.author === objJ.data.author
+      );
+      if (userComments.length >= 8) {
+        throw new Error("Cannot add more discussions tot this article.");
+      }
       paper?.discussion.push(objJ.data);
-      paper?.save();
+      await paper.save();
       return paper;
     },
     async updatePaper(
