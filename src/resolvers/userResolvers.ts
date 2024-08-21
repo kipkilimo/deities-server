@@ -1,260 +1,484 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { IUser } from '../models/User';
-import { sendEmail, EmailOptions } from '../utils/emailHandler'; // Assuming emailService.js
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User";
+import { sendEmail } from "../utils/emailHandler"; // Adjust import path as needed
+import { generateUniqueCode } from "../utils/identifier_generator";
 
-import User from '../models/User';
-import { generateUniqueCode } from '../utils/identifier_generator'
 const userResolver = {
   Query: {
-    async getUser(_: any, { id }: { id: string }) {
-      return await User.findById(id);
+    async getUser(_: any, { scholarId }: { scholarId: string }) {
+      return await User.findOne({ _id: scholarId });
     },
+
     async getUsers() {
       return await User.find();
     },
-  },
-  Mutation: {
-    // resetPassword
-    async requestPasswordReset(_: any, { email }: IUser) {
-      const activationToken = generateUniqueCode(12);
 
-      const user = await User.findOne({ email: email });
-      if (!user) {
-        throw new Error("User not found.");
-      }
-
-      // Craft well-formatted email content with a clear call to action
-      const emailBody = `
-    <h1>Password reset request, ${user.username}!</h1>
-    <p>  A password reset request as been made on your OpalLearning account.</p>
-    <p>To reset your password and access all the features, please click on the link below:</p>
-    <a href="http://localhost:5173/auth/reset?token=${activationToken}">Reset Password</a>
-    <p>Once reset, you can log in to your account and start using Opal Learning  again.</p>
-  `;
-
-      // Send the confirmation email
-      const emailOptions = {
-        to: user.email,
-        subject: "Password Reset Request on Opal Learning",
-        html: emailBody,
-      };
-
-      await sendEmail(emailOptions);
-      user.activationToken = activationToken;
-      user.resetToken = activationToken;
-      user.tokenExpiry = String(Date.now() + 7200000);
-      // Activate user
-      await user.save();
-      return user;
-    },
-    async resetPassword(_: any, { activationToken, password }: IUser) {
-      // Find the user with the given activation token
-      const user = await User.findOne({ activationToken });
-
-      // Check if user exists and token is valid (less than 2 hours old) || user.activatedAccount === false
-      if (!user || Date.now() - Number(user.tokenExpiry) > 2 * 60 * 60 * 1000) {
-        // Handle invalid token or expired token
-        throw new Error("Invalid or expired activation token");
-      }
-      // Check if user exists and token is valid (less than 2 hours old) || user.activatedAccount === false
-      if (password.length < 6 || password.length > 12) {
-        // Handle invalid token or expired token
-        throw new Error("Add password 6-12 characters long");
-      }
-      // Hash the new password
-      const hashedPassword = await bcrypt.hash(password, 10); // Adjust salt rounds as needed
-
-      // Update the user's password
-      user.password = hashedPassword;
-      user.activationToken = "";
-      user.resetToken = "";
-      user.tokenExpiry = "";
-      user.activatedAccount = true;
-      await user.save();
-
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-        expiresIn: "24h",
-      });
-      const responseBody = { user, accessToken: token };
-      return responseBody;
-    },
-    async activate(_: any, { activationToken }: IUser) {
-      try {
-        // Find user by token
-        let user = await User.findOne({ activationToken: activationToken });
-        if (!user) {
-          throw new Error("Invalid activation token");
-        }
-
-        if (Date.now() - Number(user.tokenExpiry) > 7200000) {
-          const activationToken = generateUniqueCode(12);
-
-          // Craft well-formatted email content with a clear call to action
-          const emailBody = `
-        <h1>Welcome to Opal Learning, ${user.username}!</h1>
-        <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
-        <a href="http://localhost:5173/auth/activate?token=${activationToken}">Activate Your Account</a>
-        <p>Once activated, you can log in to your account and start using Opal Learning.</p>
-      `;
-
-          // Send the confirmation email
-          const emailOptions = {
-            to: user.email,
-            subject: "Activate Your Account on Opal Learning",
-            html: emailBody,
-          };
-
-          await sendEmail(emailOptions);
-          user.activationToken = activationToken;
-          user.resetToken = activationToken;
-          user.tokenExpiry = String(Date.now() + 7200000);
-          user.activatedAccount = false;
-
-          // Activate user
-          await user.save();
-          return user;
-        }
-
-        user.activationToken = "";
-        user.resetToken = "";
-        user.tokenExpiry = "";
-        user.activatedAccount = true;
-
-        // Activate user
-        await user.save();
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-          expiresIn: "24h",
-        });
-        const responseBody = { user, accessToken: token };
-        return responseBody;
-      } catch (error) {
-        console.error("Error activating account:", error);
-        throw error; // Or handle error appropriately
-      }
-    },
-    async register(_: any, { username, email, password }: IUser) {
-      let formattedUsername;
-      function mergeStrings(str1: string, str2: string): string {
-        const midpoint1 = Math.ceil(str1.length / 2);
-        const midpoint2 = Math.floor(str2.length / 2);
-
-        const firstPart = str1.substring(0, midpoint1);
-        const secondPart = str2.substring(midpoint2);
-
-        return firstPart + secondPart;
-      }
-
-      function extractUsername(email: string): string {
-        const [emailPartOne] = email.split("@");
-        return emailPartOne;
-      }
-
-      const emailPart = extractUsername(email);
-
-      formattedUsername = mergeStrings(emailPart, username);
-      console.log({ formattedUsername });
-
-      const hashedPassword = await bcrypt.hash(password, 12);
-      const user = new User({
-        username: formattedUsername,
-        email,
-        password: hashedPassword,
-      });
-      await user.save();
-      // Generate unique activation token
-      const activationToken = generateUniqueCode(12);
-
-      // Craft well-formatted email content with a clear call to action
-      const emailBody = `
-    <h1>Welcome to Opal Learning, ${user.username}!</h1>
-    <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
-    <a href="http://localhost:5173/auth/activate?token=${activationToken}">Activate Your Account</a>
-    <p>Once activated, you can log in to your account and start using Opal Learning.</p>
-  `;
-
-      // Send the confirmation email
-      const emailOptions = {
-        to: user.email,
-        subject: "Activate Your Account on Opal Learning",
-        html: emailBody,
-      };
-
-      await sendEmail(emailOptions);
-      user.activationToken = activationToken;
-      user.resetToken = activationToken;
-      user.tokenExpiry = String(Date.now() + 7200000);
-      // Activate user
-      await user.save();
-      return user;
-    },
     async getCurrentUser(_: any, { sessionId }: { sessionId: string }) {
+      // const user = await User.findById(sessionId);
       const user = await User.findOne({ _id: sessionId });
-      if (!user) throw new Error("User not found");
+      if (!user) {
+        throw new Error("User not found");
+      }
       return user;
     },
-    // getCurrentUser(sessionId: String!): User
+  },
 
-    async login(
+  Mutation: {
+    async createUser(
       _: any,
-      { email, password }: { email: string; password: string }
+      {
+        username,
+        fullName,
+        email,
+        password,
+      }: { username: string; fullName: string; email: string; password: string }
     ) {
-      const user = await User.findOne({ email });
-      if (!user) throw new Error("User not found");
+      const lastName = username.split(" ").pop(); // Extracts the last part of the username
+      const formattedUsername = `${email.split("@")[0]}-${lastName}`;
+      console.log({ formattedUsername });
+      const hashedPassword = await bcrypt.hash(password, 12);
+      const activationToken = generateUniqueCode(12);
+      console.log({ activationToken });
+
+      const user = new User({
+        personalInfo: {
+          scholarId: generateUniqueCode(12),
+          fullName: fullName,
+          username: formattedUsername.toLowerCase(),
+          email,
+          institution: "",
+          department: "",
+          profilePicture: "",
+          password: hashedPassword,
+          bio: "",
+          dateOfBirth: null,
+          gender: "",
+          location: { city: "", state: "", country: "" },
+          website: "",
+          activationToken: activationToken,
+          resetToken: "",
+          tokenExpiry: String(Date.now() + 7200000),
+          activatedAccount: false,
+        },
+        academicInfo: {
+          researchInterests: [],
+          publications: [],
+          ongoingProjects: [],
+          collaborations: [],
+        },
+        accountSettings: {
+          privacySettings: { profileVisibility: "PUBLIC" },
+          notificationSettings: { emailNotifications: true },
+        },
+        activityInfo: {
+          lastLogin: null,
+          accountCreationDate: new Date(),
+        },
+      });
+
+      await user.save();
+      const emailBody = `
+  <div style="font-family: Arial, sans-serif; color: #333;">
+    <!-- Top Logo Stripe -->
+    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+    </div>
+
+    <!-- Email Content -->
+    <div style="padding: 20px;">
+      <h1 style="color: #0b3d91;">Welcome to NEMBi Learning, ${user.personalInfo.fullName}!</h1>
+      <p style="font-size: 16px;">Thank you for signing up. To activate your account and access the platform, please click on the link below:</p>
+      <p style="text-align: center; margin: 20px 0;">
+        <a href="http://localhost:5173/auth/activate?token=${user.personalInfo.activationToken}" 
+           style="background-color: #0b3d91; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+           Activate Your Account
+        </a>
+      </p>
+      <p style="font-size: 16px;">Once activated, you can log in to your account and start using NEMBi Learning.</p>
+        <p style="font-size: 16px;">Enjoy your learning.</p>
+       <p style="font-size: 16px;">NEMBi Team.</p>
+    </div>
+
+    <!-- Footer with Address -->
+    <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
+      <p>NEMBi Learning & Training Solutions.</p>
+      <p>Langata Road, Mara Suites</p>
+      <p>Nairobi, KE</p>
+      <p>Tel: 254700378241 Email: info@nembi.com</p>
+    </div>
+  </div>
+`;
+
+      const emailOptions = {
+        to: user.personalInfo.email,
+        subject: "Activate Your Account on  NEMBi Learning",
+        html: emailBody,
+      };
+
+      await sendEmail(emailOptions);
+
+      return user;
+    },
+
+    async updateUser(
+      _: any,
+      { scholarId, input }: { scholarId: string; input: any }
+    ) {
+      return await User.findOneAndUpdate(
+        { scholarId: scholarId },
+        { $set: input },
+        { new: true }
+      );
+    },
+    async singleSigninLogin(_: any, { accessKey }: { accessKey: string }) {
+      const user = await User.findOne({
+        "personalInfo.activationToken": accessKey,
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
       if (
-        Date.now() - Number(user.tokenExpiry) > 7200000 &&
-        user.activatedAccount === false
+        user.personalInfo.activationToken.length > 1 &&
+        Date.now() - Number(user.personalInfo.tokenExpiry) > 7200000
       ) {
         const activationToken = generateUniqueCode(12);
 
-        // Craft well-formatted email content with a clear call to action
         const emailBody = `
-      <h1>Welcome to Opal Learning, ${user.username}!</h1>
-      <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
-      <a href="http://localhost:5173/auth/activate?token=${activationToken}">Activate Your Account</a>
-      <p>Once activated, you can log in to your account and start using Opal Learning.</p>
-    `;
+          <div style="font-family: Arial, sans-serif; color: #333;">
+    <!-- Top Logo Stripe -->
+    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+    </div>
 
-        // Send the confirmation email
+    <!-- Email Content -->
+           <h1>Welcome to  NEMBi Learning, ${user.personalInfo.fullName}!</h1>
+          <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
+          <a href="http://localhost:5173/auth/activate?token=${activationToken}">Activate Your Account</a>
+          <p>Once activated, you can log in to your account and start using  NEMBi Learning.</p>
+
+    <!-- Footer with Address -->
+    <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
+      <p>NEMBi Learning & Training Solutions.</p>
+      <p>Langata Road, Mara Suites</p>
+      <p>Nairobi, KE</p>
+            <p>Tel: 254700378241 Email: info@nembi.com</p>
+    </div>
+  </div>
+
+
+
+        `;
+
         const emailOptions = {
-          to: user.email,
-          subject: "Activate Your Account on Opal Learning",
+          to: user.personalInfo.email,
+          subject: "Activate Your Account on  NEMBi Learning",
           html: emailBody,
         };
 
         await sendEmail(emailOptions);
-        user.activationToken = activationToken;
-        user.resetToken = activationToken;
-        user.tokenExpiry = String(Date.now() + 7200000);
-        user.activatedAccount = false;
-
-        // Activate user
+        user.personalInfo.activationToken = activationToken;
+        user.personalInfo.resetToken = activationToken;
+        user.personalInfo.tokenExpiry = String(Date.now() + 7200000);
+        user.personalInfo.activatedAccount = false;
         await user.save();
+
         throw new Error(
-          "Activate your account first. Activation link was sent to your email."
+          "Activate your account first. An activation link was sent to your email."
         );
       }
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) throw new Error("Incorrect password");
+
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-        expiresIn: "24h",
+        expiresIn: "168h",
       });
-      const responseBody = { user, accessToken: token };
-      return responseBody;
+      user.personalInfo.activationToken = "";
+      user.personalInfo.resetToken = "";
+      user.personalInfo.tokenExpiry = "";
+      user.personalInfo.activatedAccount = true;
+      await user.save();
+      return { user, accessToken: token };
     },
-    async updateUser(
+    async login(
       _: any,
-      { id, username, email }: { id: string; username?: string; email?: string }
+      { email, password }: { email: string; password: string }
     ) {
-      return await User.findByIdAndUpdate(
-        id,
-        { username, email },
-        { new: true }
+      const user = await User.findOne({ "personalInfo.email": email });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      if (
+        user.personalInfo.activationToken.length > 1 &&
+        Date.now() - Number(user.personalInfo.tokenExpiry) > 7200000
+      ) {
+        const activationToken = generateUniqueCode(12);
+
+        const emailBody = `
+          <div style="font-family: Arial, sans-serif; color: #333;">
+    <!-- Top Logo Stripe -->
+    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+    </div>
+
+    <!-- Email Content -->
+           <h1>Welcome to  NEMBi Learning, ${user.personalInfo.fullName}!</h1>
+          <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
+          <a href="http://localhost:5173/auth/activate?token=${activationToken}">Activate Your Account</a>
+          <p>Once activated, you can log in to your account and start using  NEMBi Learning.</p>
+
+    <!-- Footer with Address -->
+    <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
+      <p>NEMBi Learning & Training Solutions.</p>
+      <p>Langata Road, Mara Suites</p>
+      <p>Nairobi, KE</p>
+            <p>Tel: 254700378241 Email: info@nembi.com</p>
+    </div>
+  </div>
+
+
+
+        `;
+
+        const emailOptions = {
+          to: user.personalInfo.email,
+          subject: "Activate Your Account on  NEMBi Learning",
+          html: emailBody,
+        };
+
+        await sendEmail(emailOptions);
+        user.personalInfo.activationToken = activationToken;
+        user.personalInfo.resetToken = activationToken;
+        user.personalInfo.tokenExpiry = String(Date.now() + 7200000);
+        user.personalInfo.activatedAccount = false;
+        await user.save();
+
+        throw new Error(
+          "Activate your account first. An activation link was sent to your email."
+        );
+      }
+
+      const isMatch = await bcrypt.compare(
+        password,
+        user.personalInfo.password
       );
+      if (!isMatch) {
+        throw new Error("Incorrect password");
+      }
+
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+        expiresIn: "168h",
+      });
+      return { user, accessToken: token };
     },
-    async deleteUser(_: any, { id }: { id: string }) {
-      await User.findByIdAndDelete(id);
-      return "User deleted";
+
+    async activate(_: any, { activationToken }: { activationToken: string }) {
+      console.log({ activationToken });
+      const user = await User.findOne({
+        "personalInfo.activationToken": activationToken,
+      });
+      if (!user) {
+        throw new Error("Invalid activation token");
+      }
+
+      if (Date.now() - Number(user.personalInfo.tokenExpiry) > 7200000) {
+        const newActivationToken = generateUniqueCode(12);
+
+        const emailBody = `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+    <!-- Top Logo Stripe -->
+    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+    </div>
+
+    <!-- Email Content -->
+                    <h1>Welcome to  NEMBi Learning, ${user.personalInfo.fullName}!</h1>
+          <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
+          <a href="http://localhost:5173/auth/activate?token=${newActivationToken}">Activate Your Account</a>
+          <p>Once activated, you can log in to your account and start using  NEMBi Learning.</p>
+
+    <!-- Footer with Address -->
+    <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
+      <p>NEMBi Learning & Training Solutions.</p>
+      <p>Langata Road, Mara Suites</p>
+      <p>Nairobi, KE</p>
+            <p>Tel: 254700378241 Email: info@nembi.com</p>
+    </div>
+  </div>
+
+
+
+        `;
+
+        const emailOptions = {
+          to: user.personalInfo.email,
+          subject: "Activate Your Account on  NEMBi Learning",
+          html: emailBody,
+        };
+
+        await sendEmail(emailOptions);
+        user.personalInfo.activationToken = newActivationToken;
+        user.personalInfo.resetToken = newActivationToken;
+        user.personalInfo.tokenExpiry = String(Date.now() + 7200000);
+        user.personalInfo.activatedAccount = false;
+        await user.save();
+        return { user, accessToken: null };
+      }
+
+      user.personalInfo.activationToken = "";
+      user.personalInfo.resetToken = "";
+      user.personalInfo.tokenExpiry = "";
+      user.personalInfo.activatedAccount = true;
+      await user.save();
+
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+        expiresIn: "168h",
+      });
+      return { user, accessToken: token };
+    },
+
+    async resetPassword(
+      _: any,
+      {
+        activationToken,
+        password,
+      }: { activationToken: string; password: string }
+    ) {
+      const user = await User.findOne({
+        "personalInfo.activationToken": activationToken,
+      });
+
+      if (
+        !user ||
+        Date.now() - Number(user.personalInfo.tokenExpiry) > 7200000
+      ) {
+        throw new Error("Invalid or expired activation token");
+      }
+      if (password.length < 6 || password.length > 12) {
+        throw new Error("Password must be 6-12 characters long");
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      user.personalInfo.password = hashedPassword;
+      user.personalInfo.activationToken = "";
+      user.personalInfo.resetToken = "";
+      user.personalInfo.tokenExpiry = "";
+      user.personalInfo.activatedAccount = true;
+      await user.save();
+
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+        expiresIn: "168h",
+      });
+      return { user, accessToken: token };
+    },
+    async singleSignInRequest(_: any, { email }: { email: string }) {
+      const user = await User.findOne({
+        "personalInfo.email": email,
+      });
+
+      if (!user) {
+        throw new Error("User not found.");
+      }
+      const activationToken = generateUniqueCode(12);
+
+      const emailBody = `
+<div style="font-family: Arial, sans-serif; color: #333;">
+  <!-- Top Logo Stripe -->
+  <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
+    <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+  </div>
+
+  <!-- Email Content -->
+  <h2>NEMBi one time login password, ${user.personalInfo.fullName}</h2> 
+  <p>To sign in to your NEMBi account, use the one-time password below:</p>
+  
+  <!-- Copyable text field with the token -->
+  <h3 style="background-color: #f9f9f9; padding: 10px; border: 1px solid #ccc;">
+    ${activationToken}
+  </h3>
+  <p>If you did not request this password, please change your email access security parameters.</p>
+  <p>Enjoy your NEMBi Learning experience.</p> 
+
+  <!-- Footer with Address -->
+  <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
+    <p>NEMBi Learning & Training Solutions.</p>
+    <p>Langata Road, Mara Suites</p>
+    <p>Nairobi, KE</p>
+    <p>Tel: 254700378241 Email: info@nembi.com</p>
+  </div>
+</div>
+`;
+      const emailOptions = {
+        to: user.personalInfo.email,
+        subject: "One time signin pin on NEMBi Learning",
+        html: emailBody,
+      };
+
+      await sendEmail(emailOptions);
+      user.personalInfo.activationToken = activationToken;
+      user.personalInfo.resetToken = activationToken;
+      user.personalInfo.tokenExpiry = String(Date.now() + 7200000); // 2 hours
+      await user.save();
+      return user;
+    },
+    async requestPasswordReset(_: any, { email }: { email: string }) {
+      const activationToken = generateUniqueCode(12);
+
+      const user = await User.findOne({
+        "personalInfo.email": email,
+      });
+
+      if (!user) {
+        throw new Error("User not found.");
+      }
+
+      const emailBody = `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+    <!-- Top Logo Stripe -->
+    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+    </div>
+
+    <!-- Email Content -->
+                <h1>Password reset request, ${user.personalInfo.fullName}!</h1>
+        <p>A password reset request has been made on your  NEMBiLearning account.</p>
+        <p>To reset your password and access all the features, please click on the link below:</p>
+        <a href="http://localhost:5173/auth/reset?token=${activationToken}">Reset Password</a>
+        <p>Once reset, you can log in to your account and start using  NEMBi Learning again.</p>
+    <!-- Footer with Address -->
+    <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
+      <p>NEMBi Learning & Training Solutions.</p>
+      <p>Langata Road, Mara Suites</p>
+      <p>Nairobi, KE</p>
+            <p>Tel: 254700378241 Email: info@nembi.com</p>
+    </div>
+  </div>
+
+
+      `;
+
+      const emailOptions = {
+        to: user.personalInfo.email,
+        subject: "Password Reset Request on  NEMBi Learning",
+        html: emailBody,
+      };
+
+      await sendEmail(emailOptions);
+      user.personalInfo.activationToken = activationToken;
+      user.personalInfo.resetToken = activationToken;
+      user.personalInfo.tokenExpiry = String(Date.now() + 7200000); // 2 hours
+      await user.save();
+      return user;
+    },
+
+    async deleteUserByScholarId(_: any, { scholarId }: { scholarId: string }) {
+      const user = await User.findOneAndDelete({
+        _id: scholarId,
+      });
+      if (!user) throw new Error("User not found");
+      return user;
     },
   },
 };

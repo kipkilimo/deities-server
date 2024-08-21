@@ -1,45 +1,39 @@
-import { gql } from "graphql-tag";
-/*
- {
-  username: String
-  title: String
-  discussion: String
-  added: String
-}
-    page: Int
-    title: String
-    text: String
+import { gql } from "apollo-server-express";
+
+// Define the GraphQL types
+export const paperTypeDefs = gql`
+  type Discussion {
+    page: Int!
+    title: String!
+    text: String!
     x: Int
     y: Int
     width: Int
     height: Int
-    id: String
-    author: String
-    timestamp: String
-  */
-
-const paperTypeDefs = gql`
-  type Discussion {
-    page: Int
-    title: String
-    text: String
-    x: Float
-    y: Float
-    width: Float
-    height: Float
+    author: String!
+    timestamp: String!
     id: ID!
-    author: String
-    timestamp: String
   }
+
   type Paper {
     id: ID!
     title: String!
     objective: String!
     url: String
-    sessionId: String
-    discussion: [Discussion]
+    discussion: [Discussion!]!
+    participants: [User!]!
     createdDate: String
+    rating: String
+    sessionId: String
+    accessKey: String
     createdBy: User!
+  }
+
+  type User {
+    id: ID!
+    name: String!
+    email: String!
+    # Other fields
   }
 
   type Query {
@@ -62,5 +56,4 @@ const paperTypeDefs = gql`
     deletePaper(id: ID!): Paper
   }
 `;
-
 export default paperTypeDefs;

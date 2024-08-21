@@ -12,6 +12,36 @@ import { generateUniqueCode } from "../utils/identifier_generator";
   createdDate: String 
   createdBy:User!
   
+const cron = require("node-cron");
+const { scheduleJob } = require("node-schedule"); // Import the scheduleJob function
+
+// START CRON
+// *    *    *    *    *    *
+// ┬    ┬    ┬    ┬    ┬    ┬
+// │    │    │    │    │    │
+// │    │    │    │    │    └ day of week (0 - 7) (0 or 7 is Sun)
+// │    │    │    │    └───── month (1 - 12)
+// │    │    │    └────────── day of month (1 - 31)
+// │    │    └─────────────── hour (0 - 23)
+// │    └──────────────────── minute (0 - 59)
+// └───────────────────────── second (0 - 59, OPTIONAL)
+
+// cron.schedule("*\/10 * * * * *", function() {
+//  //  //
+// });
+
+// refresh
+// recentlyVisited
+
+// getUserRecentResources(userId: ID!): [Topic]
+// getUserFavoriteResources(userId: ID!): [Topic]
+
+/*
+cron.schedule("*\/15 * * * * *", async function () {
+  const allUsers = await Topic.find({topic_resource_subject:nul}); 
+  console.log({allUsers})
+});
+
   */
 const paperResolver = {
   Query: {

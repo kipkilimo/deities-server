@@ -1,52 +1,96 @@
-import mongoose, { Document, Schema } from 'mongoose';
-import { Role } from '../utils/enums'; // Import the Locality enum
+import mongoose from "mongoose";
+const { Schema } = mongoose;
 
-export interface IUser extends Document {
-  username: string;
-  email: string;
-  password: string;
-  activationToken: string;
-  resetToken: string;
-  tokenExpiry: string;
-  activatedAccount: boolean;
-}
+// Define the Location schema
+const locationSchema = new Schema({
+  city: { type: String, default: "" },
+  state: { type: String, default: "" },
+  country: { type: String, default: "" },
+});
 
-const UserSchema: Schema = new Schema({
-  username: {
-    type: String,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
+// Define the Publication schema
+const publicationSchema = new Schema({
+  title: { type: String, required: true },
+  journal: { type: String, required: true },
+  year: { type: Number, required: true },
+  url: { type: String, default: "" },
+});
+
+// Define the Collaboration schema
+const collaborationSchema = new Schema({
+  collaboratorName: { type: String, default: "" },
+  institution: { type: String, default: "" },
+  projectTitle: { type: String, default: "" },
+});
+
+// Define the PersonalInfo schema
+const personalInfoSchema = new Schema({
+  scholarId: { type: String, required: true, unique: true },
+  fullName: { type: String, required: true },
+  email: { type: String, required: true },
+  password: { type: String, required: true },
+  institution: { type: String },
+  department: { type: String, default: "" },
+  profilePicture: { type: String, default: "" },
+  bio: { type: String, default: "" },
+  dateOfBirth: { type: String, default: "" },
+  gender: { type: String, default: "" },
+  location: locationSchema,
+  username: { type: String, default: "" },
+  website: { type: String, default: "" },
+  activationToken: { type: String, default: "" },
+  resetToken: { type: String, default: "" },
+  tokenExpiry: { type: String, default: "" },
+  activatedAccount: { type: Boolean, default: false },
+});
+
+// Define the AcademicInfo schema
+const academicInfoSchema = new Schema({
+  researchInterests: { type: [String], required: true },
+  publications: [publicationSchema],
+  ongoingProjects: { type: [String], default: [] },
+  collaborations: [collaborationSchema],
+});
+
+// Define the PrivacySettings schema
+const privacySettingsSchema = new Schema({
+  profileVisibility: { type: String, required: true },
+});
+
+// Define the NotificationSettings schema
+const notificationSettingsSchema = new Schema({
+  emailNotifications: { type: Boolean, required: true },
+});
+
+// Define the AccountSettings schema
+const accountSettingsSchema = new Schema({
+  privacySettings: privacySettingsSchema,
+  notificationSettings: notificationSettingsSchema,
+});
+
+// Define the ActivityInfo schema
+const activityInfoSchema = new Schema({
+  lastLogin: { type: Date, default: null },
+  accountCreationDate: { type: Date, required: true },
+});
+
+// Define the User schema
+const userSchema = new Schema({
+  personalInfo: { type: personalInfoSchema, required: true },
+  academicInfo: { type: academicInfoSchema, required: true },
+  accountSettings: { type: accountSettingsSchema, required: true },
+  activityInfo: { type: activityInfoSchema, required: true },
   role: {
     type: String,
-    enum: Object.values(Role),
-    default: 'STUDENT',
-  },
-  activatedAccount: {
-    type: Boolean,
-    default: false,
-  },
-  activationToken: {
-    type: String,
-    default: '',
-  },
-  resetToken: {
-    type: String,
-    default: '',
-  },
-  tokenExpiry: {
-    type: String,
-    default: '',
-  },
-
-  password: {
-    type: String,
-    required: true,
+    enum: ["STUDENT", "MENTOR", "FACULTY", "ASSISTANT", "ADMIN", "SUPER"],
+    default: "STUDENT",
   },
 });
 
-const User = mongoose.model<IUser>('User', UserSchema);
+// Create the User model
+const User = mongoose.model("User", userSchema);
+// Method to find a user by email
+userSchema.statics.findByEmail = async function (email) {
+  return await this.findOne({ "personalInfo.email": email });
+};
 export default User;

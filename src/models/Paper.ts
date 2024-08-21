@@ -42,6 +42,12 @@ export interface IPaper extends Document {
   title: String;
   objective: String;
   url: String;
+  rating: String;
+  sessionId: String;
+  accessKey: String;
+  journalClubEventDate: String;
+
+  participants: mongoose.Schema.Types.ObjectId[];
   discussion: [Discussion];
   createdDate: String;
   createdBy: String;
@@ -73,7 +79,24 @@ const PaperSchema: Schema = new Schema({
     type: String,
     default: "",
   },
+  participants: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
+  rating: {
+    type: String,
+    default: "",
+  },
+  accessKey: {
+    type: String,
+    default: "",
+  },
   sessionId: {
+    type: String,
+  },
+  journalClubEventDate: {
     type: String,
   },
   createdDate: {
