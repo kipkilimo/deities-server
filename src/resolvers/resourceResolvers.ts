@@ -36,6 +36,7 @@ const resourceResolver = {
         targetCountry,
         language,
         subject,
+        keywords,
         topic,
         contentType,
         createdBy,
@@ -55,6 +56,7 @@ const resourceResolver = {
           topic,
           targetCountry,
           language,
+          keywords,
           contentType,
           sessionId: sessionIdStr,
           accessKey: accessKeyStr,
@@ -190,6 +192,19 @@ const resourceResolver = {
     async getResource(_: any, { id }: { id: string }) {
       return await Resource.findById(id);
     },
+    getQuestions: async (_: any, { resourceId }: { resourceId: string }) => {
+      try {
+        const resource = await Resource.findById(resourceId)
+          .select("questions")
+          .exec();
+        if (!resource) {
+          throw new Error("Resource not found");
+        }
+        return resource.questions;
+      } catch (error) {
+        throw new Error("Could not fetch questions");
+      }
+    },
     async getResources(_: any, args: IGetResourcesArgs) {
       try {
         // Build the filter object based on the provided arguments
@@ -203,10 +218,12 @@ const resourceResolver = {
         if (args.contentType) filter.contentType = args.contentType;
         if (args.targetRegion) filter.targetRegion = args.targetRegion;
         if (args.language) filter.language = args.language;
-        if (args.createdBy) filter.createdBy = args.createdBy;
 
         // Fetch the resources from the database based on the filter
-        const resources = await Resource.find(filter);
+        const resources = await Resource.find(filter).populate({
+          path: "createdBy",
+          model: "User",
+        });
 
         // Return the filtered resources
         return resources;

@@ -31,6 +31,7 @@ interface Discussion {
   page: Number;
   title: String;
   text: String;
+  replies: String;
   x: Number;
   y: Number;
   width: Number; // Optional: define if the highlight area is specific
@@ -43,6 +44,8 @@ export interface IPaper extends Document {
   objective: String;
   url: String;
   rating: String;
+  questions: String;
+
   sessionId: String;
   accessKey: String;
   journalClubEventDate: String;
@@ -66,6 +69,7 @@ const PaperSchema: Schema = new Schema({
     {
       page: Number,
       title: String,
+      replies: String,
       text: String,
       x: Number,
       y: Number,
@@ -86,6 +90,10 @@ const PaperSchema: Schema = new Schema({
     },
   ],
   rating: {
+    type: String,
+    default: "",
+  },
+  questions: {
     type: String,
     default: "",
   },

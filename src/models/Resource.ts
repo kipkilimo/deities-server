@@ -35,6 +35,7 @@ export interface IResource extends Document {
   sharesNumber?: number;
   rating: string;
   questions: string;
+  metaInfo: string;
   sessionId: string;
   subject: string;
   topic: string;
@@ -131,11 +132,13 @@ const ResourceSchema: Schema<IResource> = new Schema(
       type: Number,
       default: 0,
     },
+    metaInfo: { type: String, trim: true, default: "" },
     keywords: { type: String, trim: true },
     coverImage: {
       type: String,
       trim: true,
-      default: "https://example.com/default-cover.png",
+      default:
+        "https://epidemiology.sph.brown.edu/sites/default/files/styles/ultrawide_med/public/2022-04/cer-banner-minimal.png",
     },
     isPublished: {
       type: Boolean,
@@ -145,12 +148,10 @@ const ResourceSchema: Schema<IResource> = new Schema(
       type: Number,
       default: 0,
     },
-    reviews: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
+    reviews: {
+      type: String,
+      trim: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,

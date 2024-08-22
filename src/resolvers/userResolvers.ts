@@ -102,7 +102,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Learning & Training Solutions.</p>
+      <p>NEMBi Tools for Online Learning & Training.</p>
       <p>Langata Road, Mara Suites</p>
       <p>Nairobi, KE</p>
       <p>Tel: 254700378241 Email: info@nembi.com</p>
@@ -161,7 +161,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Learning & Training Solutions.</p>
+      <p>NEMBi Tools for Online Learning & Training.</p>
       <p>Langata Road, Mara Suites</p>
       <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
@@ -231,7 +231,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Learning & Training Solutions.</p>
+      <p>NEMBi Tools for Online Learning & Training.</p>
       <p>Langata Road, Mara Suites</p>
       <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
@@ -301,7 +301,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Learning & Training Solutions.</p>
+      <p>NEMBi Tools for Online Learning & Training.</p>
       <p>Langata Road, Mara Suites</p>
       <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
@@ -403,7 +403,7 @@ const userResolver = {
 
   <!-- Footer with Address -->
   <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-    <p>NEMBi Learning & Training Solutions.</p>
+    <p>NEMBi Tools for Online Learning & Training.</p>
     <p>Langata Road, Mara Suites</p>
     <p>Nairobi, KE</p>
     <p>Tel: 254700378241 Email: info@nembi.com</p>
@@ -449,7 +449,7 @@ const userResolver = {
         <p>Once reset, you can log in to your account and start using  NEMBi Learning again.</p>
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Learning & Training Solutions.</p>
+      <p>NEMBi Tools for Online Learning & Training.</p>
       <p>Langata Road, Mara Suites</p>
       <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>

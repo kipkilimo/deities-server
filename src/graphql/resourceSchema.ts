@@ -26,6 +26,7 @@ export const resourceTypeDefs = gql`
     title: String!
     description: String
     content: String!
+    metaInfo: String
     targetRegion: String
     targetCountry: String
     slug: String
@@ -40,7 +41,7 @@ export const resourceTypeDefs = gql`
     questions: String
     sessionId: String!
     accessKey: String!
-    keywords: [String]
+    keywords: String
     participants: [User]
     coverImage: String
     isPublished: Boolean
@@ -60,6 +61,8 @@ export const resourceTypeDefs = gql`
 
   type Query {
     getResource(id: ID!): Resource
+    getQuestions(resourceId: ID!): String
+
     getResources(
       title: String
       contentType: ResourceType

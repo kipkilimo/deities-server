@@ -38,8 +38,8 @@ const contentUpload = multer({
 });
 
 // Middleware to determine the upload strategy based on fileCreationStage
-router.post("/resource-uploads", async (req: Request, res: Response) => {
-  const resourceType = req.query.resourceType as string;
+router.post("/uploads", async (req: Request, res: Response) => {
+  // const resourceType = req.query.resourceType as string;
   const resourceId = req.query.resourceId as string;
 
   const fileCreationStage = req.query.fileCreationStage as string;
@@ -123,8 +123,7 @@ router.post("/resource-uploads", async (req: Request, res: Response) => {
           return res.status(404).send("Resource not found.");
         }
         res.json({
-          message: "Files uploaded successfully",
-          updatedResource,
+          message: "Cover image uploaded successfully",
         });
       }
       if (fileCreationStage === "CONTENT") {
@@ -138,13 +137,14 @@ router.post("/resource-uploads", async (req: Request, res: Response) => {
         }
         res.json({
           message: "Files uploaded successfully",
-          updatedResource,
         });
       }
       // Respond with success message and file URLs
     } catch (error) {
       console.error("Error uploading files to S3:", error);
-      res.status(500).send("Server error");
+      res.json({
+        message: "Error uploading files",
+      });
     }
   });
 });

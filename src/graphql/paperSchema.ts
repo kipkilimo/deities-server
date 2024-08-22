@@ -6,6 +6,7 @@ export const paperTypeDefs = gql`
     page: Int!
     title: String!
     text: String!
+    replies: String
     x: Int
     y: Int
     width: Int
@@ -19,6 +20,7 @@ export const paperTypeDefs = gql`
     id: ID!
     title: String!
     objective: String!
+    questions: String
     url: String
     discussion: [Discussion!]!
     participants: [User!]!
@@ -38,6 +40,8 @@ export const paperTypeDefs = gql`
 
   type Query {
     getPaper(id: ID!): Paper
+    getQuestions(paperId: ID!): String
+
     getPapers: [Paper]
     getMostRecentPaper: Paper
   }

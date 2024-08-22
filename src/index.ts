@@ -11,6 +11,7 @@ import paperTypeDefs from "./graphql/paperSchema"; // resourceTypeDefs
 import resourceTypeDefs from "./graphql/resourceSchema"; //
 
 import fileRoutes from "../src/routes/fileRoutes"; // Adjust the path as necessary
+import resourceUploaders from "../src/routes/resourceUploaders"; // Adjust the path as necessary
 
 import userResolver from "../src/resolvers/userResolvers";
 import paperResolver from "../src/resolvers/paperResolvers";
@@ -51,6 +52,7 @@ const startServer = async () => {
   connectDB();
   // Use the file routes
   app.use("/api", fileRoutes); // All routes in fileRoutes will be prefixed with /api
+  app.use("/resources", resourceUploaders);
   // app.post("/convert-pdf", handlePdfConversion);
 
   app.listen({ port: process.env.PORT }, () =>

@@ -48,6 +48,17 @@ const paperResolver = {
     async getPaper(_: any, { id }: { id: string }) {
       return await Paper.findById(id);
     },
+    getQuestions: async (_: any, { paperId }: { paperId: string }) => {
+      try {
+        const paper = await Paper.findById(paperId).select("questions").exec();
+        if (!paper) {
+          throw new Error("Paper not found");
+        }
+        return paper.questions;
+      } catch (error) {
+        throw new Error("Could not fetch questions");
+      }
+    },
     getMostRecentPaper: async () => {
       const today = new Date();
       const fourteenDaysAgo = new Date(today);
