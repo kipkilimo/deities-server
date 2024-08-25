@@ -4,8 +4,14 @@ import multer from "multer";
 import express, { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import dotenv from "dotenv";
-import mongoose from "mongoose";
+import fs from "fs/promises"; // Use promise-based fs methods
 import Resource from "../models/Resource"; // Import your mongoose model
+import { promisify } from "node:util";
+const { exec } = require("child_process");
+const path = require("path");
+// Express route to handle file uploads and processing
+const router = express.Router();
+const execAsync = promisify(exec);
 
 dotenv.config();
 
@@ -19,9 +25,7 @@ const s3Client = new S3Client({
 });
 
 // Multer configuration for file uploads
-const upload = multer({ storage: multer.memoryStorage() });
-
-const router = express.Router();
+// const upload = multer({ storage: multer.memoryStorage() });
 
 // Configure multer with file size limits
 const coverImageLimit = 2 * 1024 * 1024; // 2MB
@@ -37,7 +41,153 @@ const contentUpload = multer({
   limits: { fileSize: contentArrayLimit },
 });
 
-// Middleware to determine the upload strategy based on fileCreationStage
+async function convertPptToPdf(
+  inputFilePath: string,
+  outputFilePath: string
+): Promise<string> {
+  console.log("Starting PPT to PDF conversion...");
+  const command = `libreoffice --headless --convert-to pdf --outdir ${path.dirname(
+    outputFilePath
+  )} ${inputFilePath}`;
+  await execAsync(command);
+  console.log("PPT to PDF conversion completed.");
+  return outputFilePath;
+}
+
+async function convertPdfToJpg(
+  pdfFilePath: string,
+  outputDir: string
+): Promise<string[]> {
+  console.log("Starting PDF to JPG conversion...");
+  const command = `convert -density 300 ${pdfFilePath} ${outputDir}/page-%03d.jpg`;
+  await execAsync(command);
+
+  const jpgFiles = await fs.readdir(outputDir);
+  const filteredJpgFiles = jpgFiles.filter((file) => file.endsWith(".jpg"));
+
+  console.log(
+    `PDF to JPG conversion completed. Generated ${filteredJpgFiles.length} JPG images.`
+  );
+  return filteredJpgFiles;
+}
+
+async function uploadFileToS3(
+  filePath: string,
+  bucketName: string
+): Promise<string> {
+  console.log(`Uploading ${path.basename(filePath)} to S3...`);
+  const fileContent = await fs.readFile(filePath);
+  const fileName = `${uuidv4()}-${path.basename(filePath)}`;
+  const uploadParams = {
+    Bucket: bucketName,
+    Key: fileName,
+    Body: fileContent,
+    ContentType: "image/jpeg",
+  };
+
+  const command = new PutObjectCommand(uploadParams);
+  await s3Client.send(command);
+
+  const fileUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+  console.log(`Upload completed: ${fileUrl}`);
+  return fileUrl;
+}
+
+async function processFile(
+  inputFilePath: string
+): Promise<{ imageUrls: string[]; numberOfImages: number }> {
+  const tempDir = path.join(__dirname, "temp");
+  const outputDir = path.join(tempDir, uuidv4());
+  let pdfFilePath: string;
+
+  await fs.mkdir(tempDir, { recursive: true });
+  await fs.mkdir(outputDir, { recursive: true });
+
+  try {
+    const fileExtension = path.extname(inputFilePath).toLowerCase();
+    if (fileExtension !== ".pdf") {
+      console.log("File is not a PDF. Starting PPT to PDF conversion...");
+      pdfFilePath = path.join(tempDir, `${uuidv4()}.pdf`);
+      await convertPptToPdf(inputFilePath, pdfFilePath);
+    } else {
+      console.log("File is already a PDF. Skipping conversion...");
+      pdfFilePath = inputFilePath;
+    }
+
+    const jpgFiles = await convertPdfToJpg(pdfFilePath, outputDir);
+    const bucketName = process.env.AWS_BUCKET_NAME as string;
+
+    console.log("Starting the upload of JPG images to S3...");
+    const imageUrls = await Promise.all(
+      jpgFiles.map((jpgFile) => {
+        const jpgFilePath = path.join(outputDir, jpgFile);
+        return uploadFileToS3(jpgFilePath, bucketName);
+      })
+    );
+    console.log("All JPG images uploaded to S3.");
+
+    return { imageUrls, numberOfImages: jpgFiles.length };
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+    console.log("Temporary files cleaned up.");
+  }
+}
+
+router.post(
+  "/slides",
+  contentUpload.single("file"),
+  async (req: Request, res: Response) => {
+    const resourceId = req.query.resourceId as string;
+
+    if (!req.file) {
+      return res.status(400).send("No file uploaded.");
+    }
+
+    const resource = await Resource.findById(resourceId).select("contentType");
+    if (!resource) {
+      return res.status(400).send("Invalid resource ID.");
+    }
+
+    if (resource.contentType !== "PRESENTATION") {
+      return res.status(400).send("Invalid resource type.");
+    }
+
+    const tempDir = path.join(__dirname, "temp");
+    const tempFilePath = path.join(
+      tempDir,
+      `${uuidv4()}-${req.file.originalname}`
+    );
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(tempFilePath, req.file.buffer);
+
+      console.log("Starting the file processing...");
+      const { imageUrls, numberOfImages } = await processFile(tempFilePath);
+
+      const updatedResource = await Resource.findByIdAndUpdate(
+        resourceId,
+        { content: JSON.stringify(imageUrls) },
+        { new: true }
+      );
+
+      if (!updatedResource) {
+        return res.status(404).send("Resource not found.");
+      }
+
+      console.log("File processing and uploads completed successfully.");
+      res.json({
+        message: "Files processed and uploaded successfully.",
+        imageUrls,
+        numberOfImages,
+      });
+    } catch (error) {
+      console.error("Error processing file:", error);
+      res.status(500).send("Error processing file.");
+    }
+  }
+);
+
 router.post("/uploads", async (req: Request, res: Response) => {
   // const resourceType = req.query.resourceType as string;
   const resourceId = req.query.resourceId as string;

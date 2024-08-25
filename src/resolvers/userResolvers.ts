@@ -34,7 +34,7 @@ const userResolver = {
         password,
       }: { username: string; fullName: string; email: string; password: string }
     ) {
-      const lastName = username.split(" ").pop(); // Extracts the last part of the username
+      const lastName = username.split(" ").pop();
       const formattedUsername = `${email.split("@")[0]}-${lastName}`;
       console.log({ formattedUsername });
       const hashedPassword = await bcrypt.hash(password, 12);
@@ -102,9 +102,8 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Tools for Online Learning & Training.</p>
-      <p>Langata Road, Mara Suites</p>
-      <p>Nairobi, KE</p>
+      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+             <p>Nairobi, KE</p>
       <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>
   </div>
@@ -161,9 +160,8 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Tools for Online Learning & Training.</p>
-      <p>Langata Road, Mara Suites</p>
-      <p>Nairobi, KE</p>
+      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+             <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>
   </div>
@@ -231,9 +229,8 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Tools for Online Learning & Training.</p>
-      <p>Langata Road, Mara Suites</p>
-      <p>Nairobi, KE</p>
+      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+             <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>
   </div>
@@ -301,9 +298,8 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Tools for Online Learning & Training.</p>
-      <p>Langata Road, Mara Suites</p>
-      <p>Nairobi, KE</p>
+      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+             <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>
   </div>
@@ -403,9 +399,8 @@ const userResolver = {
 
   <!-- Footer with Address -->
   <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-    <p>NEMBi Tools for Online Learning & Training.</p>
-    <p>Langata Road, Mara Suites</p>
-    <p>Nairobi, KE</p>
+    <p>The Hub for Interactive Life Sciences Research Tools.</p>
+         <p>Nairobi, KE</p>
     <p>Tel: 254700378241 Email: info@nembi.com</p>
   </div>
 </div>
@@ -449,9 +444,8 @@ const userResolver = {
         <p>Once reset, you can log in to your account and start using  NEMBi Learning again.</p>
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>NEMBi Tools for Online Learning & Training.</p>
-      <p>Langata Road, Mara Suites</p>
-      <p>Nairobi, KE</p>
+      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+             <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>
   </div>

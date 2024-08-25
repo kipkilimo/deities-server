@@ -205,6 +205,15 @@ const resourceResolver = {
         throw new Error("Could not fetch questions");
       }
     },
+    async getAllResources(_: any, args: IGetResourcesArgs) {
+      try {
+        // Replace the following with actual database fetching logic
+        const resources = await Resource.find();
+        return resources;
+      } catch (error) {
+        throw new Error("Failed to fetch resources");
+      }
+    },
     async getResources(_: any, args: IGetResourcesArgs) {
       try {
         // Build the filter object based on the provided arguments
