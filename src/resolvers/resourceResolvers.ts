@@ -190,7 +190,14 @@ const resourceResolver = {
   },
   Query: {
     async getResource(_: any, { id }: { id: string }) {
-      return await Resource.findById(id);
+      // Fetch the resources from the database based on the filter
+      const resources = await Resource.findOne({ _id: id }).populate({
+        path: "createdBy",
+        model: "User",
+      });
+
+      // Return the filtered resources
+      return resources;
     },
     getQuestions: async (_: any, { resourceId }: { resourceId: string }) => {
       try {
@@ -211,6 +218,72 @@ const resourceResolver = {
         const resources = await Resource.find();
         return resources;
       } catch (error) {
+        throw new Error("Failed to fetch resources");
+      }
+    },
+    async getAllSpecificTypeResources(
+      _: unknown,
+      { resourceType }: { resourceType: string }
+    ): Promise<InstanceType<typeof Resource>[]> {
+      try {
+        const valsRaw = JSON.parse(resourceType);
+        const vals = valsRaw[0];
+
+        const reqParams = {
+          resourceType: vals.resourceType,
+          subject: vals.selectedSubject,
+          topic: vals.selectedTopic,
+          country: vals.selectedCountry,
+          targetRegion: vals.selectedTargetRegion,
+          language: vals.selectedLanguage,
+        };
+        console.log({ reqParams });
+
+        // Initialize the query object with the required resourceType filter
+        const query: Record<string, unknown> = {
+          contentType: reqParams.resourceType,
+        };
+
+        // Conditionally add optional filters if they are provided
+        if (reqParams.subject) {
+          query.subject = reqParams.subject;
+        }
+        if (reqParams.topic) {
+          query.topic = reqParams.topic;
+        }
+        if (reqParams.country) {
+          // Use regex for partial and case-insensitive match
+          query.country = { $regex: new RegExp(reqParams.country, "i") };
+        }
+        if (reqParams.targetRegion) {
+          query.targetRegion = reqParams.targetRegion;
+        }
+        if (reqParams.language) {
+          query.language = reqParams.language;
+        }
+
+        // Fetch the resources from the database based on the dynamically built query
+        let resources = await Resource.find(query);
+
+        // If no resources were found, perform a more general query
+        if (resources.length === 0) {
+          console.log("No specific resources found, fetching general items...");
+
+          // General query: only resourceType filter is maintained
+          const generalQuery: Record<string, unknown> = {
+            contentType: reqParams.resourceType, // Ensure the resourceType filter is still applied
+          };
+
+          // Perform a general search with reduced criteria, ensuring resourceType is met
+          resources = await Resource.find(generalQuery)
+            .limit(3) // Limit to 3 results
+            .exec(); // Execute the query and return the results
+        }
+
+        // Return the filtered or general resources
+        return resources;
+      } catch (error) {
+        console.error("Error fetching resources:", error);
         throw new Error("Failed to fetch resources");
       }
     },

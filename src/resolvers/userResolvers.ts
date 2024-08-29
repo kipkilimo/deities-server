@@ -102,7 +102,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
       <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>
@@ -160,7 +160,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>
@@ -189,7 +189,7 @@ const userResolver = {
       }
 
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-        expiresIn: "168h",
+        expiresIn: "7d",
       });
       user.personalInfo.activationToken = "";
       user.personalInfo.resetToken = "";
@@ -229,7 +229,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>
@@ -266,7 +266,7 @@ const userResolver = {
       }
 
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-        expiresIn: "168h",
+        expiresIn: "7d",
       });
       return { user, accessToken: token };
     },
@@ -298,7 +298,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>
@@ -330,7 +330,7 @@ const userResolver = {
       await user.save();
 
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-        expiresIn: "168h",
+        expiresIn: "7d",
       });
       return { user, accessToken: token };
     },
@@ -365,7 +365,7 @@ const userResolver = {
       await user.save();
 
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-        expiresIn: "168h",
+        expiresIn: "7d",
       });
       return { user, accessToken: token };
     },
@@ -399,7 +399,7 @@ const userResolver = {
 
   <!-- Footer with Address -->
   <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-    <p>The Hub for Interactive Life Sciences Research Tools.</p>
+    <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
          <p>Nairobi, KE</p>
     <p>Tel: 254700378241 Email: info@nembi.com</p>
   </div>
@@ -444,7 +444,7 @@ const userResolver = {
         <p>Once reset, you can log in to your account and start using  NEMBi Learning again.</p>
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Research Tools.</p>
+      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nembi.com</p>
     </div>

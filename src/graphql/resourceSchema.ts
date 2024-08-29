@@ -63,13 +63,14 @@ export const resourceTypeDefs = gql`
     getResource(id: ID!): Resource
     getQuestions(resourceId: ID!): String
     getAllResources: [Resource!]!
+    getAllSpecificTypeResources(resourceType: String!): [Resource!]!
     getResources(
+      subject: String
+      topic: String
       title: String
       contentType: ResourceType
       targetRegion: String
       language: String
-      subject: String
-      topic: String
     ): [Resource]
   }
 

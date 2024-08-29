@@ -1,37 +1,45 @@
-import nodemailer from 'nodemailer';
- 
+// import dotenv from "dotenv";
+
+// dotenv.config();
+import nodemailer from "nodemailer";
+
 interface EmailOptions {
   to: string;
   subject: string;
   html?: string;
-  text?: string;
+  attachments?: {
+    filename: string;
+    content: Buffer;
+    contentType: string;
+  }[];
 }
 
 async function sendEmail(options: EmailOptions): Promise<void> {
-  const { to, subject, html, text } = options;
+  const { to, subject, html, attachments } = options;
 
   // Gmail specific configuration
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: "gmail",
+    secure: false, // Set to true if using TLS
     auth: {
-      user: process.env.GMAIL_ADDRR,
-      pass: process.env.GMAIL_PASS
-    }
+      user: process.env.GMAIL_ADDR,
+      pass: process.env.GMAIL_PASS,
+    },
   });
 
   const mailOptions = {
-    from: 'noreply@opallearning.com',
+    from: "noreply@opallearning.com",
     to,
     subject,
     html,
-    text
+    attachments,
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully');
+    console.log("Email sent successfully");
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error("Error sending email:", error);
     // Handle error, e.g., retry, log, notify
   }
 }
