@@ -274,6 +274,7 @@ router.post("/uploads", async (req: Request, res: Response) => {
         }
         res.json({
           message: "Cover image uploaded successfully",
+          resource: updatedResource,
         });
       }
       if (fileCreationStage === "CONTENT") {

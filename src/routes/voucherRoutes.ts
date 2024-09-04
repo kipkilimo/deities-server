@@ -1,29 +1,33 @@
 import express, { Router, Request, Response } from "express";
 import mongoose from "mongoose";
-import nodemailer from "nodemailer";
 import pdf from "html-pdf-node";
 import QRCode from "qrcode";
-// import dotenv from "dotenv";
-import { sendEmail } from "../utils/emailHandler"; // Adjust import path as needed
+import dotenv from "dotenv";
+import { sendEmail, EmailOptions } from "../utils/emailHandler"; // Adjust the path as needed
+import Vendor from "../models/Vendor"; // Import your mongoose model
 
-// dotenv.config();
+dotenv.config();
 
+const ngrokURL = process.env.VITE_NGROK_URL;
 const generateToken = (): string => {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
 const generateQrCodeImage = async (token: string): Promise<string> => {
   try {
-    const qrCodeDataUrl = await QRCode.toDataURL(token);
+    const process = "CHECK"; //'AUTH'
+    const url = `${ngrokURL}:4000/vendors/check?code=${token}`; // Updated to generate URL with token
+    const qrCodeDataUrl = await QRCode.toDataURL(url);
     return qrCodeDataUrl;
   } catch (err) {
     throw new Error("Failed to generate QR code.");
   }
 };
-
+// CHECK
+// https://huge-eagles-guess.loca.lt:4000/vendors/authenticate?accessToken=PbZuQ7g8NeEvNt5VbTp
 const generateVoucherHTML = async (token: string): Promise<string> => {
   const qrCodeUrl = await generateQrCodeImage(token);
-  // Function to format the date as "MMMM D, YYYY h:mm:ss a"
+
   const formattedExpiryDate = (date: Date): string => {
     const options: Intl.DateTimeFormatOptions = {
       month: "long",
@@ -36,6 +40,7 @@ const generateVoucherHTML = async (token: string): Promise<string> => {
     };
     return date.toLocaleString("en-US", options);
   };
+
   return `
     <html>
     <head>
@@ -44,7 +49,10 @@ const generateVoucherHTML = async (token: string): Promise<string> => {
           margin: 0;
           padding: 0;
           font-family: Arial, sans-serif;
-          background-color: #f5f5f5;
+          /* Repeating background applied to the entire page */
+          background-image: url('https://i.pinimg.com/originals/ec/44/37/ec4437dff1c7084d424c36e297a03a91.png');
+          background-repeat: repeat;
+          background-size: 20px 20px; 
         }
         .voucher {
           width: 21cm;
@@ -59,6 +67,8 @@ const generateVoucherHTML = async (token: string): Promise<string> => {
           justify-content: center;
           align-items: center;
           text-align: center;
+          position: relative;  
+          z-index: 1; 
         }
         .voucher h1 {
           font-size: 36px;
@@ -82,19 +92,34 @@ const generateVoucherHTML = async (token: string): Promise<string> => {
         }
       </style>
     </head>
-    <body>
-<div class="voucher">
-  <h1>KSH 100</h1>
-  <p>PRINT SHOP VOUCHER</p>
-  <div style="display: flex; justify-content: center; gap: 20px;">
-    <img src="${qrCodeUrl}" alt="QR Code" style="width: 50%; max-width: 150px; height: auto;"/>
-    <img src="https://cdn.freebiesupply.com/logos/large/2x/trello-logo-png-transparent.png" alt="Logo" style="width: 50%; max-width: 150px; height: auto;"/>
-  </div>
-   <div class="footer">
-          Valid for one-time use only. Expiry date: ${formattedExpiryDate}
+    <body style="          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+          /* Repeating background applied to the entire page */
+          background-image: url('https://i.pinimg.com/originals/ec/44/37/ec4437dff1c7084d424c36e297a03a91.png');
+          background-repeat: repeat;
+          background-size: 20px 20px; ">
+      <div class="voucher">
+        <h1>KSH 100</h1>
+        <p>PRINT SHOP & COMCARE CAFE VOUCHER</p>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <img src="${qrCodeUrl}" alt="QR Code" style="width: 540px; height: auto;"/>
+          <img src="https://cdn.freebiesupply.com/logos/large/2x/trello-logo-png-transparent.png" alt="Logo" style="max-width: 150px; height: auto;"/>
         </div>
-</div>
-
+        <div class="footer">
+          Valid for one-time use only. Expiry date: ${formattedExpiryDate(
+            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          )}
+ 
+        </div>
+          <hr/>
+        <div class="footer">
+ 
+          <h4>The Hub for Interactive Life Sciences Learning and Research Tools.</h4>
+          <p>
+Epidemiology | Biostatistics | Research Methods | Seminar Series | Colloquia and Talks | Test Yourself | Fun Activities</p>
+        </div>
+      </div>
     </body>
     </html>
   `;
@@ -115,28 +140,6 @@ const generatePdfBuffer = async (htmlContent: string): Promise<Buffer> => {
   });
 };
 
-const sendEmailWithVoucher = async (email: string, voucherPDF: Buffer) => {
-  try {
-    const emailOptions = {
-      to: email,
-      subject: "Your NEMBi Voucher",
-      html: "<h3>Please find your exclusive NEMBi voucher attached.</h3>",
-      attachments: [
-        {
-          filename: "voucher.pdf",
-          content: voucherPDF,
-          contentType: "application/pdf",
-        },
-      ],
-    };
-
-    await sendEmail(emailOptions);
-    console.log(`Email sent to ${email}`);
-  } catch (error) {
-    console.error(`Failed to send email to ${email}:`, error);
-  }
-};
-
 export const sendVouchersToEmails = async (emailList: string[]) => {
   for (let i = 0; i < emailList.length; i++) {
     const email = emailList[i];
@@ -152,7 +155,20 @@ export const sendVouchersToEmails = async (emailList: string[]) => {
     const voucherHTML = await generateVoucherHTML(token);
     const pdfBuffer = await generatePdfBuffer(voucherHTML);
 
-    await sendEmailWithVoucher(email, pdfBuffer);
+    const emailOptions: EmailOptions = {
+      to: email,
+      subject: "Your NEMBi Voucher",
+      html: "<h3>Please find your exclusive NEMBi voucher attached.</h3>",
+      attachments: [
+        {
+          filename: "voucher.pdf",
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    };
+
+    await sendEmail(emailOptions);
     console.log(`Sent voucher to ${email}`);
   }
 };
@@ -171,20 +187,23 @@ const voucherSchema = new mongoose.Schema<IVoucher>({
 
 const Voucher = mongoose.model<IVoucher>("Voucher", voucherSchema);
 
-const router = Router();
+const cors = require("cors"); // Import the cors package
 
+const router = express.Router();
+
+// Enable CORS for this router only
+router.use(cors());
+
+// Route to send vouchers
 router.get("/send-vouchers", async (req, res) => {
   try {
     const emailListRaw = req.query.awardeeEmails;
 
-    // @ts-ignore
-    const emailList = JSON.parse(emailListRaw);
+    const emailList = JSON.parse(emailListRaw as string);
 
-    // Log the parsed array to verify
     console.log({ emailList });
-    const result = await sendVouchersToEmails(emailList);
+    await sendVouchersToEmails(emailList);
     const response = {
-      result: result,
       message: "Vouchers sent successfully!",
     };
     res.send(response);
@@ -195,16 +214,14 @@ router.get("/send-vouchers", async (req, res) => {
 });
 
 router.get("/check", async (req: Request, res: Response) => {
-  const { token } = req.query;
+  const { code } = req.query; // Changed from `token` to `code`
 
-  if (!token || typeof token !== "string") {
-    return res
-      .status(400)
-      .json({ error: "Token is required and must be a string" });
+  if (!code || typeof code !== "string") {
+    return res.status(400).json({ error: "Code is required" });
   }
 
   try {
-    const voucher = await Voucher.findOne({ token });
+    const voucher = await Voucher.findOne({ token: code }); // Match `token` with `code`
 
     if (!voucher) {
       return res
@@ -228,7 +245,8 @@ router.get("/check", async (req: Request, res: Response) => {
         .json({ status: "expired", message: "Voucher has expired" });
     }
 
-    return res.json({ status: "valid", message: "Voucher is valid" });
+    // If the voucher is valid, return the entire voucher document as JSON
+    return res.json(voucher);
   } catch (error) {
     console.error("Error checking voucher:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -237,6 +255,7 @@ router.get("/check", async (req: Request, res: Response) => {
 
 router.post("/redeem", async (req: Request, res: Response) => {
   const { token } = req.body;
+  const { vendorId, pin } = req.query;
 
   if (!token || typeof token !== "string") {
     return res
@@ -244,7 +263,27 @@ router.post("/redeem", async (req: Request, res: Response) => {
       .json({ error: "Token is required and must be a string" });
   }
 
+  if (!vendorId || typeof vendorId !== "string") {
+    return res
+      .status(400)
+      .json({ error: "Vendor ID is required and must be a string" });
+  }
+
+  if (!pin || typeof pin !== "string") {
+    return res
+      .status(400)
+      .json({ error: "PIN is required and must be a string" });
+  }
+
   try {
+    // Verify vendor
+    const vendor = await Vendor.findOne({ vendorId, vendorPin: pin });
+
+    if (!vendor) {
+      return res.status(401).json({ error: "Invalid vendor ID or PIN" });
+    }
+
+    // Proceed with voucher redemption
     const voucher = await Voucher.findOne({ token });
 
     if (!voucher) {
@@ -278,6 +317,81 @@ router.post("/redeem", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error redeeming voucher:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+// Route to handle vendor login via QR code scan
+router.get("/authenticate", async (req: Request, res: Response) => {
+  const { accessToken } = req.query;
+  console.log({ accessToken });
+  if (!accessToken || typeof accessToken !== "string") {
+    return res
+      .status(400)
+      .json({ error: "Access token is required and must be a string" });
+  }
+
+  try {
+    const vendor = await Vendor.findOne({ vendorId: accessToken });
+
+    if (!vendor) {
+      return res
+        .status(404)
+        .json({ status: "invalid", message: "Vendor not found" });
+    }
+
+    // Render a page or send a response to prompt the user to enter their PIN
+    // Assuming you'll handle the PIN entry on the frontend
+    return res.json({
+      status: "success",
+      message: "Vendor found, please enter your PIN",
+      vendorId: vendor.vendorId, // Send back vendorId to be used in PIN verification
+    });
+  } catch (error) {
+    console.error("Error logging in vendor:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Route to verify vendor PIN
+router.post("/login", async (req: Request, res: Response) => {
+  const { vendorId, pin } = req.body;
+
+  if (!vendorId || typeof vendorId !== "string") {
+    return res.status(400).json({ error: "Vendor ID is required" });
+  }
+
+  if (!pin || typeof pin !== "number") {
+    return res
+      .status(400)
+      .json({ error: "PIN is required and must be a number" });
+  }
+
+  try {
+    const vendor = await Vendor.findOne({ vendorId });
+
+    if (!vendor) {
+      return res
+        .status(404)
+        .json({ status: "invalid", message: "Vendor not found" });
+    }
+
+    if (vendor.vendorPin !== pin) {
+      return res
+        .status(401)
+        .json({ status: "invalid", message: "Incorrect PIN" });
+    }
+
+    // Return vendor details if PIN matches
+    return res.json({
+      status: "success",
+      message: "PIN verified successfully",
+      vendor: {
+        vendorId: vendor.vendorId,
+        // You can include other vendor details here if needed
+      },
+    });
+  } catch (error) {
+    console.error("Error verifying vendor PIN:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });

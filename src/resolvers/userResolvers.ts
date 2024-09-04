@@ -202,6 +202,7 @@ const userResolver = {
       _: any,
       { email, password }: { email: string; password: string }
     ) {
+      console.log({ login: email });
       const user = await User.findOne({ "personalInfo.email": email });
 
       if (!user) {

@@ -16,5 +16,11 @@ export function generateUniqueCode(length: number = 12): string {
 
   return result; 
 }
+/*
 
+MNzBKaO1fQAnTRQhtk2q
+dgTppQbVXTEGA1MFTYiD
+iTitxRRZc6cN8H86yv9P
+4b1voEYXdCiwNpPB6qCm
+*/
 

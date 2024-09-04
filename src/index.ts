@@ -11,7 +11,7 @@ import { json } from "body-parser";
 import userTypeDefs from "./graphql/userSchema";
 import paperTypeDefs from "./graphql/paperSchema"; // resourceTypeDefs
 import resourceTypeDefs from "./graphql/resourceSchema"; //
-
+import vendorTypeDefs from "./graphql/vendorSchema"; //
 import voucherRoutes from "../src/routes/voucherRoutes"; // Import the voucherRouter
 
 import fileRoutes from "../src/routes/fileRoutes"; // Adjust the path as necessary
@@ -21,6 +21,7 @@ import { s3Deleter } from "../src/utils/awsDeleter"; // Adjust the path accordin
 import userResolver from "../src/resolvers/userResolvers";
 import paperResolver from "../src/resolvers/paperResolvers";
 import resourceResolver from "../src/resolvers/resourceResolvers";
+import vendorResolver from "../src/resolvers/vendorResolver";
 import { handlePdfConversion } from "../src/utils/pdfConverter";
 
 import connectDB from "../src/database/connection";
@@ -41,8 +42,8 @@ const startServer = async () => {
   app.use(auth);
 
   const server = new ApolloServer({
-    typeDefs: [userTypeDefs, paperTypeDefs, resourceTypeDefs],
-    resolvers: [userResolver, paperResolver, resourceResolver],
+    typeDefs: [userTypeDefs, paperTypeDefs, resourceTypeDefs, vendorTypeDefs],
+    resolvers: [userResolver, paperResolver, resourceResolver, vendorResolver],
     csrfPrevention: true,
     introspection: true,
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground({})],
