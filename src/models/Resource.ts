@@ -14,6 +14,7 @@ enum ResourceType {
   LINK = "LINK",
   POLL = "POLL",
   TEST = "TEST",
+  MODEL = "MODEL",
   POSTER = "POSTER",
   ARTICLE = "ARTICLE",
   JOB = "JOB",

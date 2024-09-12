@@ -2,8 +2,22 @@ import { IResource } from "../models/Resource";
 import Resource from "../models/Resource";
 import { generateUniqueCode } from "../utils/identifier_generator";
 import generateAccessKey from "../utils/accessKeyUtility";
+const cron = require("node-cron");
 
 /*
+// "contentType": "PRESENTATION",
+// Cron job to run every 15 seconds
+cron.schedule("*\/15 * * * * *", async () => {
+  try {
+    const result = await Resource.deleteMany({ contentType: "POLL" });
+    console.log(`Deleted ${result.deletedCount} items.`);
+  } catch (err) {
+    console.error("Error deleting items:", err);
+  }
+});
+
+
+
   id: ID!
   title: String!
   objective: String!
@@ -73,7 +87,37 @@ const resourceResolver = {
         throw new Error("Failed to create resource");
       }
     },
+    // addResourceFormContent(resourceDetails: String!): Resource!
+    async addResourceFormContent(
+      _: any,
+      { resourceDetails }: { resourceDetails: string }
+    ) {
+      try {
+        // Parse the incoming JSON string to an object
+        const paramsArray = JSON.parse(resourceDetails);
+        const params = paramsArray[0];
 
+        const { resourceId, resourceContent } = params;
+
+        // Find the resource by its ID
+        const resource = await Resource.findOne({ _id: resourceId });
+        if (!resource) {
+          throw new Error("Resource not found");
+        }
+
+        // Update the content of the found resource
+        resource.content = resourceContent;
+
+        // Save the updated resource back to the database
+        await resource.save();
+
+        // Return the updated resource document
+        return resource;
+      } catch (error) {
+        console.error("Error updating resource:", error);
+        throw new Error("Failed to update resource");
+      }
+    },
     async updateResource(
       _: any,
       {
@@ -189,15 +233,89 @@ const resourceResolver = {
     //   },
   },
   Query: {
+    // getPublisherLatestPoll({ userId: string })
+    async getPublisherLatestPoll(_: any, { userId }: { userId: String }) {
+      console.log({ userId });
+
+      // Step 1: Fetch the latest poll created by the user
+      let poll = await Resource.findOne({
+        createdBy: userId,
+        contentType: "POLL",
+      })
+        .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+        .populate({
+          path: "createdBy",
+          model: "User",
+          select: {
+            id: 1,
+            personalInfo: {
+              username: 1,
+              fullName: 1,
+              email: 1,
+              scholarId: 1,
+              activationToken: 1,
+              resetToken: 1,
+              tokenExpiry: 1,
+              activatedAccount: 1,
+            },
+            role: 1,
+          },
+        });
+
+      // Step 2: If no poll is found, search for polls where userId is in participants array
+      if (!poll) {
+        poll = await Resource.findOne({
+          contentType: "POLL",
+          participants: userId, // Search in participants array
+        })
+          .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+          .populate({
+            path: "createdBy",
+            model: "User",
+            select: {
+              id: 1,
+              personalInfo: {
+                username: 1,
+                fullName: 1,
+                email: 1,
+                scholarId: 1,
+                activationToken: 1,
+                resetToken: 1,
+                tokenExpiry: 1,
+                activatedAccount: 1,
+              },
+              role: 1,
+            },
+          });
+      }
+
+      // Return the latest poll or null if none found
+      console.log({ poll });
+      return poll;
+    },
     async getResource(_: any, { id }: { id: string }) {
       // Fetch the resources from the database based on the filter
-      const resources = await Resource.findOne({ _id: id }).populate({
+      const resource = await Resource.findOne({ _id: id }).populate({
         path: "createdBy",
         model: "User",
+        select: {
+          id: 1,
+          personalInfo: {
+            username: 1,
+            fullName: 1,
+            email: 1,
+            scholarId: 1,
+            activationToken: 1,
+            resetToken: 1,
+            tokenExpiry: 1,
+            activatedAccount: 1,
+          },
+          role: 1,
+        },
       });
 
-      // Return the filtered resources
-      return resources;
+      // Return the filtered resource
+      return resource;
     },
     getQuestions: async (_: any, { resourceId }: { resourceId: string }) => {
       try {

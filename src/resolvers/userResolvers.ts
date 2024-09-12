@@ -82,12 +82,12 @@ const userResolver = {
   <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->
     <div style="padding: 20px;">
-      <h1 style="color: #0b3d91;">Welcome to NEMBi Learning, ${user.personalInfo.fullName}!</h1>
+      <h1 style="color: #0b3d91;">Welcome to NEMBio Learning, ${user.personalInfo.fullName}!</h1>
       <p style="font-size: 16px;">Thank you for signing up. To activate your account and access the platform, please click on the link below:</p>
       <p style="text-align: center; margin: 20px 0;">
         <a href="http://localhost:5173/auth/activate?token=${user.personalInfo.activationToken}" 
@@ -95,23 +95,23 @@ const userResolver = {
            Activate Your Account
         </a>
       </p>
-      <p style="font-size: 16px;">Once activated, you can log in to your account and start using NEMBi Learning.</p>
+      <p style="font-size: 16px;">Once activated, you can log in to your account and start using NEMBio Learning.</p>
         <p style="font-size: 16px;">Enjoy your learning.</p>
-       <p style="font-size: 16px;">NEMBi Team.</p>
+       <p style="font-size: 16px;">NEMBio Team.</p>
     </div>
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
       <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
-      <p>Tel: 254700378241 Email: info@nembi.com</p>
+      <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
   </div>
 `;
 
       const emailOptions = {
         to: user.personalInfo.email,
-        subject: "Activate Your Account on  NEMBi Learning",
+        subject: "Activate Your Account on  NEMBio Learning",
         html: emailBody,
       };
 
@@ -149,20 +149,20 @@ const userResolver = {
           <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->
-           <h1>Welcome to  NEMBi Learning, ${user.personalInfo.fullName}!</h1>
+           <h1>Welcome to  NEMBio Learning, ${user.personalInfo.fullName}!</h1>
           <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
           <a href="http://localhost:5173/auth/activate?token=${activationToken}">Activate Your Account</a>
-          <p>Once activated, you can log in to your account and start using  NEMBi Learning.</p>
+          <p>Once activated, you can log in to your account and start using  NEMBio Learning.</p>
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
       <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
-            <p>Tel: 254700378241 Email: info@nembi.com</p>
+            <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
   </div>
 
@@ -172,7 +172,7 @@ const userResolver = {
 
         const emailOptions = {
           to: user.personalInfo.email,
-          subject: "Activate Your Account on  NEMBi Learning",
+          subject: "Activate Your Account on  NEMBio Learning",
           html: emailBody,
         };
 
@@ -219,20 +219,20 @@ const userResolver = {
           <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->
-           <h1>Welcome to  NEMBi Learning, ${user.personalInfo.fullName}!</h1>
+           <h1>Welcome to  NEMBio Learning, ${user.personalInfo.fullName}!</h1>
           <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
           <a href="http://localhost:5173/auth/activate?token=${activationToken}">Activate Your Account</a>
-          <p>Once activated, you can log in to your account and start using  NEMBi Learning.</p>
+          <p>Once activated, you can log in to your account and start using  NEMBio Learning.</p>
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
       <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
-            <p>Tel: 254700378241 Email: info@nembi.com</p>
+            <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
   </div>
 
@@ -242,7 +242,7 @@ const userResolver = {
 
         const emailOptions = {
           to: user.personalInfo.email,
-          subject: "Activate Your Account on  NEMBi Learning",
+          subject: "Activate Your Account on  NEMBio Learning",
           html: emailBody,
         };
 
@@ -288,20 +288,20 @@ const userResolver = {
         <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->
-                    <h1>Welcome to  NEMBi Learning, ${user.personalInfo.fullName}!</h1>
+                    <h1>Welcome to  NEMBio Learning, ${user.personalInfo.fullName}!</h1>
           <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
           <a href="http://localhost:5173/auth/activate?token=${newActivationToken}">Activate Your Account</a>
-          <p>Once activated, you can log in to your account and start using  NEMBi Learning.</p>
+          <p>Once activated, you can log in to your account and start using  NEMBio Learning.</p>
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
       <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
-            <p>Tel: 254700378241 Email: info@nembi.com</p>
+            <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
   </div>
 
@@ -311,7 +311,7 @@ const userResolver = {
 
         const emailOptions = {
           to: user.personalInfo.email,
-          subject: "Activate Your Account on  NEMBi Learning",
+          subject: "Activate Your Account on  NEMBio Learning",
           html: emailBody,
         };
 
@@ -384,31 +384,31 @@ const userResolver = {
 <div style="font-family: Arial, sans-serif; color: #333;">
   <!-- Top Logo Stripe -->
   <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-    <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+    <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
   </div>
 
   <!-- Email Content -->
-  <h2>NEMBi one time login password, ${user.personalInfo.fullName}</h2> 
-  <p>To sign in to your NEMBi account, use the one-time password below:</p>
+  <h2>NEMBio one time login password, ${user.personalInfo.fullName}</h2> 
+  <p>To sign in to your NEMBio account, use the one-time password below:</p>
   
   <!-- Copyable text field with the token -->
   <h3 style="background-color: #f9f9f9; padding: 10px; border: 1px solid #ccc;">
     ${activationToken}
   </h3>
   <p>If you did not request this password, please change your email access security parameters.</p>
-  <p>Enjoy your NEMBi Learning experience.</p> 
+  <p>Enjoy your NEMBio Learning experience.</p> 
 
   <!-- Footer with Address -->
   <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
     <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
          <p>Nairobi, KE</p>
-    <p>Tel: 254700378241 Email: info@nembi.com</p>
+    <p>Tel: 254700378241 Email: info@nem.bio</p>
   </div>
 </div>
 `;
       const emailOptions = {
         to: user.personalInfo.email,
-        subject: "One time signin pin on NEMBi Learning",
+        subject: "One time signin pin on NEMBio Learning",
         html: emailBody,
       };
 
@@ -434,20 +434,20 @@ const userResolver = {
         <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBi Learning Logo" style="width: 150px;">
+      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->
                 <h1>Password reset request, ${user.personalInfo.fullName}!</h1>
-        <p>A password reset request has been made on your  NEMBiLearning account.</p>
+        <p>A password reset request has been made on your  NEMBioLearning account.</p>
         <p>To reset your password and access all the features, please click on the link below:</p>
         <a href="http://localhost:5173/auth/reset?token=${activationToken}">Reset Password</a>
-        <p>Once reset, you can log in to your account and start using  NEMBi Learning again.</p>
+        <p>Once reset, you can log in to your account and start using  NEMBio Learning again.</p>
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
       <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
              <p>Nairobi, KE</p>
-            <p>Tel: 254700378241 Email: info@nembi.com</p>
+            <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
   </div>
 
@@ -456,7 +456,7 @@ const userResolver = {
 
       const emailOptions = {
         to: user.personalInfo.email,
-        subject: "Password Reset Request on  NEMBi Learning",
+        subject: "Password Reset Request on  NEMBio Learning",
         html: emailBody,
       };
 

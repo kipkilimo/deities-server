@@ -1,7 +1,8 @@
 import { IPaper } from "../models/Paper";
 import Paper from "../models/Paper";
-import { generateUniqueCode } from "../utils/identifier_generator";
 
+import { generateUniqueCode } from "../utils/identifier_generator";
+import generateAccessKey from "../utils/accessKeyUtility";
 /*
   id: ID!
   title: String!
@@ -78,9 +79,22 @@ const paperResolver = {
         })
           .sort({ createdDate: -1 }) // Sort by createdDate in descending order
           .populate({
-            path: "createdBy", // Populate the createdBy field
-            model: "User", // Select specific fields from User if needed
-            select: "id username email role", // Select only specific fields
+            path: "createdBy",
+            model: "User",
+            select: {
+              id: 1,
+              personalInfo: {
+                username: 1,
+                fullName: 1,
+                email: 1,
+                scholarId: 1,
+                activationToken: 1,
+                resetToken: 1,
+                tokenExpiry: 1,
+                activatedAccount: 1,
+              },
+              role: 1,
+            },
           });
 
         console.log("success:", mostRecentPaper);
@@ -112,12 +126,14 @@ const paperResolver = {
         // Log the provided arguments for debugging
         console.log({ title, objective, createdBy });
 
+        const accessKeyStr = generateAccessKey();
         // Create a new paper document with the provided fields and a unique sessionId
         const paper = new Paper({
           title,
           objective,
           createdBy,
           sessionId: generateUniqueCode(12),
+          accessKey: accessKeyStr,
           createdDate: String(Date.now()),
         });
 

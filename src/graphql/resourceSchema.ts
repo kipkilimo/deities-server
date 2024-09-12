@@ -16,6 +16,7 @@ export const resourceTypeDefs = gql`
     POLL
     TEST
     POSTER
+    MODEL
     ARTICLE
     JOB
     TASK
@@ -64,6 +65,8 @@ export const resourceTypeDefs = gql`
     getQuestions(resourceId: ID!): String
     getAllResources: [Resource!]!
     getAllSpecificTypeResources(resourceType: String!): [Resource!]!
+
+    getPublisherLatestPoll(userId: String!): Resource
     getResources(
       subject: String
       topic: String
@@ -87,6 +90,7 @@ export const resourceTypeDefs = gql`
       keywords: String
       createdBy: ID!
     ): Resource
+    addResourceFormContent(resourceDetails: String!): Resource!
 
     updateResource(
       id: ID!

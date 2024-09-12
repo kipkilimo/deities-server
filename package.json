@@ -29,12 +29,14 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.1",
     "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.14",
     "pdf-image": "^2.0.0",
     "qrcode": "^1.5.4",
     "smtp-connection": "^4.0.2",
     "typescript": "^5.5.4",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -45,6 +47,7 @@
     "@types/nodemailer": "^6.4.15",
     "@types/qrcode": "^1.5.5",
     "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.12",
     "arg": "^5.0.2",
     "ts-node": "^10.9.2"
   }

@@ -157,8 +157,8 @@ export const sendVouchersToEmails = async (emailList: string[]) => {
 
     const emailOptions: EmailOptions = {
       to: email,
-      subject: "Your NEMBi Voucher",
-      html: "<h3>Please find your exclusive NEMBi voucher attached.</h3>",
+      subject: "Your NEMBio Voucher",
+      html: "<h3>Please find your exclusive NEMBio voucher attached.</h3>",
       attachments: [
         {
           filename: "voucher.pdf",

@@ -41,7 +41,6 @@ export const paperTypeDefs = gql`
   type Query {
     getPaper(id: ID!): Paper
     getQuestions(paperId: ID!): String
-
     getPapers: [Paper]
     getMostRecentPaper: Paper
   }
