@@ -20,6 +20,7 @@ export const resourceTypeDefs = gql`
     ARTICLE
     JOB
     TASK
+    COMPUTING
   }
 
   type Resource {
@@ -62,6 +63,8 @@ export const resourceTypeDefs = gql`
 
   type Query {
     getResource(id: ID!): Resource
+    fetchComputingResource(topicParams: String!): Resource
+    getAllTaskResources: [Resource!]!
     getQuestions(resourceId: ID!): String
     getAllResources: [Resource!]!
     getAllSpecificTypeResources(resourceType: String!): [Resource!]!

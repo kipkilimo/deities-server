@@ -5,16 +5,18 @@ import generateAccessKey from "../utils/accessKeyUtility";
 const cron = require("node-cron");
 
 /*
-// "contentType": "PRESENTATION",
+
 // Cron job to run every 15 seconds
 cron.schedule("*\/15 * * * * *", async () => {
   try {
-    const result = await Resource.deleteMany({ contentType: "POLL" });
+    const result = await Resource.deleteMany({ contentType: "TASK" });
     console.log(`Deleted ${result.deletedCount} items.`);
   } catch (err) {
     console.error("Error deleting items:", err);
   }
 });
+// "contentType": "PRESENTATION",
+
 
 
 
@@ -293,6 +295,58 @@ const resourceResolver = {
       console.log({ poll });
       return poll;
     },
+    //  async fetchComputingResource(topicParams: string)
+    async fetchComputingResource(
+      _: any,
+      { topicParams }: { topicParams: string }
+    ) {
+      try {
+        // Parse the incoming params
+        const params = JSON.parse(topicParams);
+
+        console.log({ resourceParamsLang: params.language });
+        const queryLang = String(params.language);
+        // Query for resources by title (matching topic) and populate creator information
+        const resources = await Resource.find({
+          title: params.topic, // Match topic with title
+        }).populate({
+          path: "createdBy",
+          model: "User",
+          select: {
+            id: 1,
+            personalInfo: {
+              username: 1,
+              fullName: 1,
+              email: 1,
+              scholarId: 1,
+              activationToken: 1,
+              resetToken: 1,
+              tokenExpiry: 1,
+              activatedAccount: 1,
+            },
+            role: 1,
+          },
+        });
+
+        // Find the first resource that contains the specified language in its content
+        const resourceRaw = resources.filter((resource) => {
+          const content = JSON.parse(resource.content);
+          return content.language === queryLang;
+        });
+        const resource = resourceRaw[0];
+        // If resource is found, parse its content and return it
+        if (resource) {
+          const resourceR = JSON.parse(resource.content);
+          return resource;
+        } else {
+          console.log("No resource found for the given language.");
+          return null; // Return null or an appropriate error object
+        }
+      } catch (error) {
+        console.error("Error fetching resource:", error);
+        throw error; // Rethrow the error for proper handling
+      }
+    },
     async getResource(_: any, { id }: { id: string }) {
       // Fetch the resources from the database based on the filter
       const resource = await Resource.findOne({ _id: id }).populate({
@@ -328,6 +382,39 @@ const resourceResolver = {
         return resource.questions;
       } catch (error) {
         throw new Error("Could not fetch questions");
+      }
+    },
+    async getAllTaskResources(_: any) {
+      try {
+        // Build the filter object based on the provided arguments
+
+        // Fetch the resources from the database based on the filter
+        const resources = await Resource.find({ contentType: "TASK" }).populate(
+          {
+            path: "createdBy",
+            model: "User",
+            select: {
+              id: 1,
+              personalInfo: {
+                username: 1,
+                fullName: 1,
+                email: 1,
+                scholarId: 1,
+                activationToken: 1,
+                resetToken: 1,
+                tokenExpiry: 1,
+                activatedAccount: 1,
+              },
+              role: 1,
+            },
+          }
+        );
+
+        // Return the filtered resources
+        return resources;
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+        throw new Error("Failed to fetch resources");
       }
     },
     async getAllResources(_: any, args: IGetResourcesArgs) {

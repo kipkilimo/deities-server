@@ -19,6 +19,7 @@ enum ResourceType {
   ARTICLE = "ARTICLE",
   JOB = "JOB",
   TASK = "TASK",
+  COMPUTING = "COMPUTING",
 }
 
 // Define the interface for the Resource schema

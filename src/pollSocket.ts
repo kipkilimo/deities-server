@@ -152,6 +152,45 @@ export const initializeWebSocket = (server: any) => {
           sendResponse(ws, null, "Error submitting response");
         }
       }
+      // reset responses
+      if (data.type === "reset_all_responses") {
+        const { accessKey, sessionId } = data;
+
+        try {
+          const resource = await Resource.findOne({ accessKey, sessionId })
+            .select("accessKey sessionId content")
+            .exec();
+
+          if (!resource) {
+            sendResponse(ws, null, "Resource not found");
+            return;
+          }
+
+          let contentToUpdate = JSON.parse(resource.content);
+          const questionsToUpdate = contentToUpdate.pollArray.map(
+            (question: any) => question
+          );
+
+          if (!questionsToUpdate) {
+            sendResponse(ws, null, "Questions not found");
+            return;
+          }
+
+          // Update each question's responses to an empty array
+          questionsToUpdate.forEach((question: { responses: never[] }) => {
+            question.responses = [];
+          });
+
+          resource.content = JSON.stringify(contentToUpdate);
+          await resource.save();
+
+          sendResponse(ws, resource); // Send updated resource to the client
+          broadcastPollUpdate(wss, resource); // Broadcast the update to all clients
+        } catch (error) {
+          console.error("Error submitting response:", error);
+          sendResponse(ws, null, "Error submitting response");
+        }
+      }
     });
 
     ws.on("close", () => {

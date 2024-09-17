@@ -288,6 +288,7 @@ router.post("/uploads", async (req: Request, res: Response) => {
         }
         res.json({
           message: "Files uploaded successfully",
+          url: JSON.stringify(fileUrls),
         });
       }
       // Respond with success message and file URLs
