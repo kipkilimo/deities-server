@@ -5,14 +5,25 @@ import generateAccessKey from "../utils/accessKeyUtility";
 const cron = require("node-cron");
 
 /*
-
-// Cron job to run every 15 seconds
 cron.schedule("*\/15 * * * * *", async () => {
   try {
     const result = await Resource.deleteMany({ contentType: "TASK" });
     console.log(`Deleted ${result.deletedCount} items.`);
   } catch (err) {
     console.error("Error deleting items:", err);
+  }
+});
+cron.schedule("*\/15 * * * * *", async () => {
+  try {
+    // Update all documents
+    const result = await Resource.updateMany(
+      {}, // No filter means all documents will be updated
+      { $set: { participants: "[]" } } // Update participants field
+    );
+
+    console.log(`Updated ${JSON.stringify(result)} items.`);
+  } catch (err) {
+    console.error("Error updating items:", err);
   }
 });
 // "contentType": "PRESENTATION",
@@ -236,6 +247,75 @@ const resourceResolver = {
   },
   Query: {
     // getPublisherLatestPoll({ userId: string })
+    async getPublisherLatestExams(_: any, { userId }: { userId: string }) {
+      console.log({ userId });
+
+      // Step 1: Fetch the latest 12 exams created by the user with contentType = "TEST"
+      let exams = await Resource.find({
+        createdBy: userId,
+        contentType: "TEST",
+      })
+        .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+        .limit(12) // Limit the results to the last 12 items
+        .populate({
+          path: "createdBy",
+          model: "User",
+          select: {
+            id: 1,
+            personalInfo: {
+              username: 1,
+              fullName: 1,
+              email: 1,
+              scholarId: 1,
+              activationToken: 1,
+              resetToken: 1,
+              tokenExpiry: 1,
+              activatedAccount: 1,
+            },
+            role: 1,
+          },
+        });
+
+      // Step 2: If no exams are found, search for exams where userId is in the participants array
+      if (!exams || exams.length === 0) {
+        exams = await Resource.find({
+          contentType: "TEST",
+          participants: userId, // Search in participants array
+        })
+          .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+          .limit(12) // Limit the results to the last 12 items
+          .populate({
+            path: "createdBy",
+            model: "User",
+            select: {
+              id: 1,
+              personalInfo: {
+                username: 1,
+                fullName: 1,
+                email: 1,
+                scholarId: 1,
+                activationToken: 1,
+                resetToken: 1,
+                tokenExpiry: 1,
+                activatedAccount: 1,
+              },
+              role: 1,
+            },
+          });
+      }
+      exams = exams.map((exam) => {
+        const parsedContent = JSON.parse(exam.content); // Parse the stringified content
+        console.log({ parsedContent: parsedContent.examMetaInfo });
+        if (parsedContent) {
+          // @ts-ignore
+          exam.examMetaInfo = JSON.parse(parsedContent.examMetaInfo); // Extract and parse testMeta
+        }
+        return exam;
+      });
+      // Return the latest exams or null if none found
+      // console.log({ exams });
+      return exams;
+    },
     async getPublisherLatestPoll(_: any, { userId }: { userId: String }) {
       console.log({ userId });
 
@@ -490,6 +570,97 @@ const resourceResolver = {
       } catch (error) {
         console.error("Error fetching resources:", error);
         throw new Error("Failed to fetch resources");
+      }
+    },
+    async fetchResourceSummaryByRoleAndType() {
+      try {
+        // Aggregation to count resources by contentType
+        const resourceCountsPromise = Resource.aggregate([
+          {
+            $group: {
+              _id: "$contentType",
+              count: { $sum: 1 },
+            },
+          },
+        ]);
+
+        // Fetch most liked, most requested, and most recently created resources
+        const [mostLikedResource, mostRequestedResource, mostCreatedResource] =
+          await Promise.all([
+            Resource.findOne()
+              .sort({ likesNumber: -1 })
+              .select("title likesNumber"),
+            Resource.findOne()
+              .sort({ viewsNumber: -1 })
+              .select("title viewsNumber"),
+            Resource.findOne({ createdAt: { $ne: null } }) // Ensure createdAt is not null
+              .sort({ createdAt: -1 })
+              .select("title createdAt"),
+          ]);
+
+        // Aggregation for publication trends by month (filtering out resources with null or missing createdAt)
+        const publicationTrends = await Resource.aggregate([
+          {
+            $match: { createdAt: { $ne: null } }, // Filter out documents with null createdAt
+          },
+          {
+            $group: {
+              _id: { month: { $month: "$createdAt" } }, // Extract month from createdAt
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { "_id.month": 1 } },
+        ]);
+
+        const monthNames = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+
+        // Format publication trends to a readable format
+        const formattedPublicationTrends = publicationTrends
+          .map((item) => {
+            const monthIndex = item._id.month - 1;
+            if (monthIndex >= 0 && monthIndex < monthNames.length) {
+              const month = monthNames[monthIndex].slice(0, 3); // Use short month name
+              return { period: month, count: item.count };
+            }
+            return null;
+          })
+          .filter((item) => item !== null); // Remove null entries
+
+        // Wait for the resource counts aggregation
+        const resourceCounts = await resourceCountsPromise;
+
+        // Create the summary object with counts for each content type
+        const summary = resourceCounts.reduce((acc, { _id, count }) => {
+          const key = `${_id.toLowerCase()}Count`; // Convert content type to a key like 'audioCount'
+          acc[key] = count;
+          return acc;
+        }, {});
+
+        // Add the additional properties for most liked, requested, and created resources
+        summary.mostLikedResource = mostLikedResource;
+        summary.mostRequestedResource = mostRequestedResource;
+        summary.mostCreatedResource = mostCreatedResource;
+        summary.publicationTrends = formattedPublicationTrends;
+
+        console.log({ summary });
+
+        return [summary]; // Return an array since the schema expects an array of ResourceSummary
+      } catch (error) {
+        console.error("Error in fetchResourceSummaryByRoleAndType:", error);
+        throw error; // Propagate the error for handling
       }
     },
     async getResources(_: any, args: IGetResourcesArgs) {

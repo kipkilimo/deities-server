@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import fs from "fs/promises"; // Use promise-based fs methods
 import Resource from "../models/Resource"; // Import your mongoose model
 import { promisify } from "node:util";
+import User from "../models/User";
 const { exec } = require("child_process");
 const path = require("path");
 // Express route to handle file uploads and processing
@@ -187,7 +188,198 @@ router.post(
     }
   }
 );
+// Handle POST request to /resources/uploads/exam/enroll
+// Handle POST request to /resources/uploads/exam/enroll
+router.post("/uploads/exam/enroll", async (req, res) => {
+  const { sessionId, participantsList } = req.body;
 
+  if (!sessionId || !participantsList) {
+    return res
+      .status(400)
+      .json({ error: "Session ID and participants list are required" });
+  }
+
+  try {
+    // Fetch the Resource by sessionId
+    const resource = await Resource.findOne({ sessionId });
+
+    if (!resource) {
+      return res.status(404).json({ error: "Resource not found" });
+    }
+
+    // Parse the participantsList from JSON
+    let parsedParticipantsList;
+    try {
+      parsedParticipantsList = JSON.parse(participantsList);
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ error: "Invalid participants list format" });
+    }
+
+    // Destructure ACCEPTED and REJECTED, and ensure they are arrays
+    const { ACCEPTED = [], REJECTED = [] } = parsedParticipantsList;
+
+    // Define the helper function to handle participant updates
+    function updateParticipants(
+      resourceParticipants: any[],
+      acceptedRequests: string[],
+      rejectedRequests: string[]
+    ) {
+      const updatedParticipants = resourceParticipants
+        .map((participant: any) => {
+          if (acceptedRequests.includes(participant.userId)) {
+            participant.requestStatus = "ENROLLED";
+          } else if (rejectedRequests.includes(participant.userId)) {
+            return null; // Mark for removal if rejected
+          }
+          return participant;
+        })
+        .filter((participant: any) => participant !== null); // Remove rejected entries
+      return updatedParticipants;
+    }
+
+    let resourceParticipants = [];
+    if (resource.participants.length > 0) {
+      // Parse existing participants
+      resourceParticipants = JSON.parse(resource.participants);
+    }
+
+    // Update participants based on accepted and rejected lists
+    const updatedParticipants = updateParticipants(
+      resourceParticipants,
+      ACCEPTED,
+      REJECTED
+    );
+
+    // Add new participants from accepted requests
+    for (const userId of ACCEPTED) {
+      try {
+        // Fetch user by ID (ensure userId is a valid ObjectId string)
+        const participant = await User.findById(userId.userId);
+        if (participant) {
+          const participantDetails = {
+            sessionId,
+            userId: userId.userId,
+            requestedDate: new Date(), // Current date and time
+            requestStatus: "ENROLLED",
+            participantName: participant.personalInfo.fullName,
+            resourceResponses: [],
+          };
+          // Add new participant details to the list
+          updatedParticipants.push(participantDetails);
+        } else {
+          console.error(`User not found for ID ${userId}`);
+        }
+      } catch (error) {
+        console.error(`Error fetching user with ID ${userId}:`, error);
+      }
+    }
+    // clean
+    const cleanedParticipants = Array.from(
+      new Map(
+        updatedParticipants
+          .filter(
+            (participant: any) => participant.requestStatus === "ENROLLED"
+          )
+          .map((participant: any) => [participant.userId, participant])
+      ).values()
+    );
+    // Function to remove duplicates based on a specific field
+    function removeDuplicates(arr: any[], field: string) {
+      const seen = new Set();
+      return arr.reduce((unique: any[], item: { [x: string]: unknown }) => {
+        if (!seen.has(item[field])) {
+          seen.add(item[field]);
+          unique.push(item);
+        }
+        return unique;
+      }, []);
+    }
+
+    const uniqueArray = removeDuplicates(cleanedParticipants, "userId");
+
+    resource.participants = JSON.stringify(uniqueArray);
+
+    await resource.save();
+
+    // Respond with a success message
+    res.json({
+      message: "Participant data updated successfully",
+      updatedParticipants,
+    });
+  } catch (error) {
+    console.error("Error processing participant data:", error);
+    res.status(500).json({ error: "An error occurred while processing data" });
+  }
+});
+
+router.post("/uploads/exam/participant", async (req, res) => {
+  const { sessionId, userId } = req.body;
+
+  if (!sessionId || !userId) {
+    return res
+      .status(400)
+      .json({ error: "Session ID and User ID are required" });
+  }
+
+  try {
+    // Fetch the Resource by sessionId
+    const resource = await Resource.findOne({ sessionId });
+
+    if (!resource) {
+      return res.status(404).json({ error: "Resource not found" });
+    }
+    //@ts-ignore
+    let resourceParticipants = [];
+    if (resource.participants.length >= 1) {
+      // Parse the JSON array from participants
+      resourceParticipants = JSON.parse(resource.participants);
+    }
+
+    // Define the parseJsonArray function separately
+
+    const userExists = resourceParticipants.some(
+      (participant: { userId: any }) => participant.userId === userId
+    );
+
+    if (userExists) {
+      return res
+        .status(404)
+        .json({ error: "Cannot add duplicate participants" });
+    }
+    if (resourceParticipants.length > 50) {
+      return res.status(404).json({ error: "Cannot add more participants" });
+    }
+    const participant = await User.findOne({ _id: userId });
+    // Create the participantDetails object
+    const participantDetails = {
+      sessionId,
+      userId,
+      requestedDate: new Date(), // Current date and time
+      requestStatus: "PENDING",
+      //@ts-ignore
+      participantName: participant.personalInfo.fullName,
+      resourceResponses: [],
+    };
+
+    // Push the participantDetails object into resource.participant array
+    resourceParticipants.push(participantDetails);
+    const updated = JSON.stringify(resourceParticipants);
+    resource.participants = updated;
+    // Save the updated resource back to the database
+    await resource.save();
+
+    // Respond with a success message
+    res.json({
+      message: "Participant data received successfully",
+      participantDetails,
+    });
+  } catch (error) {
+    console.error("Error processing participant data:", error);
+    res.status(500).json({ error: "An error occurred while processing data" });
+  }
+});
 router.post("/uploads", async (req: Request, res: Response) => {
   // const resourceType = req.query.resourceType as string;
   const resourceId = req.query.resourceId as string;

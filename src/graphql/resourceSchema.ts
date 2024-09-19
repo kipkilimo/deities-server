@@ -44,7 +44,7 @@ export const resourceTypeDefs = gql`
     sessionId: String!
     accessKey: String!
     keywords: String
-    participants: [User]
+    participants: String
     coverImage: String
     isPublished: Boolean
     averageRating: Float
@@ -60,8 +60,91 @@ export const resourceTypeDefs = gql`
     email: String!
     # Other fields
   }
+  type ResourceSummary {
+    audioCount: Int
+    videoCount: Int
+    imagesCount: Int
+    documentCount: Int
+    presentationCount: Int
+    eventCount: Int
+    datasetCount: Int
+    linkCount: Int
+    pollCount: Int
+    testCount: Int
+    modelCount: Int
+    posterCount: Int
+    articleCount: Int
+    jobCount: Int
+    taskCount: Int
+    mostLikedResource: ResourceDetail
+    mostRequestedResource: ResourceDetail
+    mostCreatedResource: ResourceDetail
+    publicationTrends: [PublicationTrend]
+  }
 
+  type ResourceDetail {
+    title: String
+    likesNumber: Int
+    viewsNumber: Int
+    createdAt: String
+  }
+
+  type PublicationTrend {
+    month: Int
+    count: Int
+  }
+  type ExamMetaInfo {
+    id: ID!
+    title: String
+    coverImage: String
+    description: String
+    examMetaInfo: ExamMetaDetails
+    subject: String
+    topic: String
+    createdBy: User
+    createdAt: String
+    sessionId: String
+    accessKey: String
+    participants: String
+  }
+
+  type ExamMetaDetails {
+    examDate: String
+    examStartTime: String
+    examDuration: String
+    examEndTime: String
+    selectedTypes: [String]
+    numberOfQuestions: QuestionCount
+    markingSchemes: MarkingScheme
+    testMeta: [TestMeta]
+  }
+
+  type QuestionCount {
+    SCQ: String
+    MCQ: String
+    ATF: String
+    ETF: String
+    VSAQ: String
+    SAQ: String
+    LEQ: String
+  }
+
+  type MarkingScheme {
+    SCQ: String
+    MCQ: String
+    ATF: String
+    ETF: String
+  }
+
+  type TestMeta {
+    testType: String
+    numberOfQuestions: String
+  }
   type Query {
+    getPublisherLatestExams(userId: String!): [ExamMetaInfo]
+
+    fetchResourceSummaryByRoleAndType: [ResourceSummary!]!
+
     getResource(id: ID!): Resource
     fetchComputingResource(topicParams: String!): Resource
     getAllTaskResources: [Resource!]!

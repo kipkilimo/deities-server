@@ -46,8 +46,8 @@ export interface IResource extends Document {
   coverImage?: string;
   isPublished?: boolean;
   averageRating?: number;
-  reviews?: string; // mongoose.Schema.Types.ObjectId[];
-  participants: mongoose.Schema.Types.ObjectId[];
+  reviews?: mongoose.Schema.Types.ObjectId[]; // Changed to ObjectId array
+  participants: string; // Changed to ObjectId array
   createdBy: mongoose.Schema.Types.ObjectId;
   createdAt?: Date;
 }
@@ -111,12 +111,10 @@ const ResourceSchema: Schema<IResource> = new Schema(
       type: String,
       trim: true,
     },
-    participants: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    participants: {
+      type: String,
+      trim: true,
+    },
     contentType: {
       type: String,
       enum: Object.values(ResourceType),
@@ -150,10 +148,12 @@ const ResourceSchema: Schema<IResource> = new Schema(
       type: Number,
       default: 0,
     },
-    reviews: {
-      type: String,
-      trim: true,
-    },
+    reviews: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Review", // Reference to a Review model, adjust if needed
+      },
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -169,5 +169,6 @@ const ResourceSchema: Schema<IResource> = new Schema(
     toJSON: { virtuals: true },
   }
 );
+
 const Resource = mongoose.model<IResource>("Resource", ResourceSchema);
 export default Resource;
