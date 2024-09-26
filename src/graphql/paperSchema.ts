@@ -23,7 +23,7 @@ export const paperTypeDefs = gql`
     questions: String
     url: String
     discussion: [Discussion!]!
-    participants: [User!]!
+    participants: String
     createdDate: String
     rating: String
     sessionId: String
@@ -42,7 +42,7 @@ export const paperTypeDefs = gql`
     getPaper(id: ID!): Paper
     getQuestions(paperId: ID!): String
     getPapers: [Paper]
-    getMostRecentPaper: Paper
+    getMostRecentPapers(userId: ID!): [Paper]
   }
 
   type Mutation {

@@ -46,7 +46,7 @@ export interface IResource extends Document {
   coverImage?: string;
   isPublished?: boolean;
   averageRating?: number;
-  reviews?: mongoose.Schema.Types.ObjectId[]; // Changed to ObjectId array
+  reviews: string; // Changed to ObjectId array
   participants: string; // Changed to ObjectId array
   createdBy: mongoose.Schema.Types.ObjectId;
   createdAt?: Date;
@@ -71,6 +71,7 @@ const ResourceSchema: Schema<IResource> = new Schema(
       type: String,
       trim: true,
       default: "",
+      maxlength: [5500, "Content cannot exceed provided characters"],
     },
     targetRegion: {
       type: String,
@@ -148,12 +149,10 @@ const ResourceSchema: Schema<IResource> = new Schema(
       type: Number,
       default: 0,
     },
-    reviews: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Review", // Reference to a Review model, adjust if needed
-      },
-    ],
+    reviews: {
+      type: String,
+      trim: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,

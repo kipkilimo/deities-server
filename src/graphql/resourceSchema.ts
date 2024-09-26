@@ -140,9 +140,32 @@ export const resourceTypeDefs = gql`
     testType: String
     numberOfQuestions: String
   }
+
+  # AssignmentMetaInfo type for capturing the metadata of the assignment
+  type AssignmentMetaInfo {
+    assignmentType: String
+    assignmentTitle: String
+    assignmentDescription: String
+    assignmentDuration: String
+    assignmentDeadline: String
+    assignmentAnswersKey: [String] # Array of strings for answer keys
+    assignmentTaskSet: [String] # Array of strings for task set
+    id: ID! # Unique ID for the assignment
+    title: String # Title of the assignment
+    coverImage: String # Cover image URL of the assignment
+    description: String # Description of the assignment
+    subject: String # Subject area of the assignment
+    topic: String # Topic of the assignment
+    createdBy: User # Information about the user who created the assignment
+    createdAt: String # Timestamp of when the assignment was created
+    sessionId: String # Session ID related to the assignment
+    accessKey: String # Access key for the assignment
+    participants: String # Participant information
+  }
+
   type Query {
     getPublisherLatestExams(userId: String!): [ExamMetaInfo]
-
+    getPublisherLatestTasks(userId: String!): [AssignmentMetaInfo]
     fetchResourceSummaryByRoleAndType: [ResourceSummary!]!
 
     getResource(id: ID!): Resource
@@ -151,6 +174,7 @@ export const resourceTypeDefs = gql`
     getQuestions(resourceId: ID!): String
     getAllResources: [Resource!]!
     getAllSpecificTypeResources(resourceType: String!): [Resource!]!
+    getUserTasks(userId: String!): [Resource!]!
 
     getPublisherLatestPoll(userId: String!): Resource
     getResources(

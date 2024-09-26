@@ -3,7 +3,28 @@ import Paper from "../models/Paper";
 
 import { generateUniqueCode } from "../utils/identifier_generator";
 import generateAccessKey from "../utils/accessKeyUtility";
+
+const cron = require("node-cron");
+
 /*
+
+cron.schedule("*\/15 * * * * *", async function () {
+  try {
+    // Find all papers
+    const allUsers = await Paper.find();
+    console.log({ allUsers });
+
+    // Update the participants field for each paper to be an empty string
+    await Paper.updateMany({}, { $set: { participants: "[]" } });
+
+    console.log("Updated participants field for all papers.");
+  } catch (error) {
+    console.error("Error updating papers:", error);
+  }
+});
+
+
+
   id: ID!
   title: String!
   objective: String!
@@ -13,7 +34,7 @@ import generateAccessKey from "../utils/accessKeyUtility";
   createdDate: String 
   createdBy:User!
   
-const cron = require("node-cron");
+
 const { scheduleJob } = require("node-schedule"); // Import the scheduleJob function
 
 // START CRON
@@ -38,10 +59,7 @@ const { scheduleJob } = require("node-schedule"); // Import the scheduleJob func
 // getUserFavoriteResources(userId: ID!): [Topic]
 
 /*
-cron.schedule("*\/15 * * * * *", async function () {
-  const allUsers = await Topic.find({topic_resource_subject:nul}); 
-  console.log({allUsers})
-});
+
 
   */
 const paperResolver = {
@@ -60,24 +78,36 @@ const paperResolver = {
         throw new Error("Could not fetch questions");
       }
     },
-    getMostRecentPaper: async () => {
+    // const getMostRecentPapers = async (_: any, { userId }: { userId: string }) => {
+    async getMostRecentPapers(_: any, { userId }: { userId: string }) {
       const today = new Date();
-      const fourteenDaysAgo = new Date(today);
-      fourteenDaysAgo.setDate(today.getDate() - 14);
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
 
       try {
         // Convert dates to milliseconds for comparison
-        const fourteenDaysAgoMillis = fourteenDaysAgo.getTime();
+        const thirtyDaysAgoMillis = thirtyDaysAgo.getTime();
         const todayMillis = today.getTime();
 
-        // Fetch the most recent paper within the last 14 days, sorting by createdDate in descending order
-        const mostRecentPaper = await Paper.findOne({
+        // Fetch the current academic year based on today’s date (assuming a September to August academic year)
+        const currentYear = today.getFullYear();
+        const academicYearStart =
+          today.getMonth() >= 8 // If today is September or later
+            ? currentYear
+            : currentYear - 1;
+        const academicYearEnd = academicYearStart + 1;
+        const academicYear = `${academicYearStart}-${academicYearEnd}`;
+
+        // Fetch the last 4 papers where the user is the creator (createdBy matches userId)
+        const createdPapers = await Paper.find({
           createdDate: {
-            $gte: fourteenDaysAgoMillis.toString(), // Use stringified milliseconds
+            $gte: thirtyDaysAgoMillis.toString(), // Use stringified milliseconds
             $lte: todayMillis.toString(), // Use stringified milliseconds
           },
+          createdBy: userId, // Filter by createdBy field
         })
           .sort({ createdDate: -1 }) // Sort by createdDate in descending order
+          .limit(4) // Limit to the last 4 papers
           .populate({
             path: "createdBy",
             model: "User",
@@ -97,12 +127,52 @@ const paperResolver = {
             },
           });
 
-        console.log("success:", mostRecentPaper);
+        // Fetch the last 8 papers where the user is either a participant or publisher
+        const participantOrPublisherPapers = await Paper.find({
+          createdDate: {
+            $gte: thirtyDaysAgoMillis.toString(), // Use stringified milliseconds
+            $lte: todayMillis.toString(), // Use stringified milliseconds
+          },
+          $or: [
+            // Check for userId in participants using regex
+            { participants: { $regex: userId, $options: "i" } },
+            { publishers: userId }, // Check if user is in publishers
+          ],
+        })
+          .sort({ createdDate: -1 }) // Sort by createdDate in descending order
+          .limit(8) // Limit to the last 8 papers
+          .populate({
+            path: "createdBy",
+            model: "User",
+            select: {
+              id: 1,
+              personalInfo: {
+                username: 1,
+                fullName: 1,
+                email: 1,
+                scholarId: 1,
+                activationToken: 1,
+                resetToken: 1,
+                tokenExpiry: 1,
+                activatedAccount: 1,
+              },
+              role: 1,
+            },
+          });
 
-        return mostRecentPaper;
+        // Combine the two arrays, ensuring no more than 12 papers total
+        const allPapers = [
+          ...createdPapers,
+          ...participantOrPublisherPapers,
+        ].slice(0, 12);
+
+        console.log("success:", allPapers);
+
+        // Return only the array of papers
+        return allPapers;
       } catch (error) {
-        console.error("Error fetching the most recent paper:", error);
-        throw new Error("Error fetching the most recent paper");
+        console.error("Error fetching the most recent papers:", error);
+        throw new Error("Error fetching the most recent papers");
       }
     },
     getPapers: async () => {

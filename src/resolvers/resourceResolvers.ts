@@ -4,6 +4,7 @@ import { generateUniqueCode } from "../utils/identifier_generator";
 import generateAccessKey from "../utils/accessKeyUtility";
 const cron = require("node-cron");
 
+
 /*
 cron.schedule("*\/15 * * * * *", async () => {
   try {
@@ -13,6 +14,8 @@ cron.schedule("*\/15 * * * * *", async () => {
     console.error("Error deleting items:", err);
   }
 });
+
+
 cron.schedule("*\/15 * * * * *", async () => {
   try {
     // Update all documents
@@ -246,7 +249,222 @@ const resourceResolver = {
     //   },
   },
   Query: {
-    // getPublisherLatestPoll({ userId: string })
+    // getUserTasks(userId: string) {
+    async getUserTasks(_: any, { userId }: { userId: string }) {
+      console.log({ userId });
+
+      // Step 1: Fetch the latest 12 tasks created by the user with contentType = "TASK"
+      let tasks = await Resource.find({
+        createdBy: userId,
+        contentType: "TASK",
+      })
+        .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+        .limit(12) // Limit the results to the last 12 items
+        .populate({
+          path: "createdBy",
+          model: "User",
+          select: {
+            id: 1,
+            personalInfo: {
+              username: 1,
+              fullName: 1,
+              email: 1,
+              scholarId: 1,
+              activationToken: 1,
+              resetToken: 1,
+              tokenExpiry: 1,
+              activatedAccount: 1,
+            },
+            role: 1,
+          },
+        });
+
+      // Step 2: If no tasks are found, search for tasks where userId is in the participants array
+      if (!tasks || tasks.length === 0) {
+        tasks = await Resource.find({
+          contentType: "TASK",
+          participants: userId, // Search in participants array
+        })
+          .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+          .limit(12) // Limit the results to the last 12 items
+          .populate({
+            path: "createdBy",
+            model: "User",
+            select: {
+              id: 1,
+              personalInfo: {
+                username: 1,
+                fullName: 1,
+                email: 1,
+                scholarId: 1,
+                activationToken: 1,
+                resetToken: 1,
+                tokenExpiry: 1,
+                activatedAccount: 1,
+              },
+              role: 1,
+            },
+          });
+      }
+
+      // Step 3: Parse the content field and look for userId in participants within the JSON
+      // @ts-ignore
+      tasks = tasks.map((task) => {
+        const parsedContent = JSON.parse(task.content); // Parse the stringified content
+        console.log({ parsedContent: parsedContent.examMetaInfo });
+
+        if (parsedContent && parsedContent.participants) {
+          const participants = parsedContent.participants; // Extract participants array from JSON content
+          if (participants.includes(userId)) {
+            // If userId is found in participants, continue processing
+            console.log(`User ${userId} is in participants`);
+          } else {
+            // If userId is not in participants, discard this task
+            console.log(
+              `User ${userId} is not in participants, excluding task`
+            );
+            return null;
+          }
+
+          // @ts-ignore
+          task.examMetaInfo = JSON.parse(parsedContent.examMetaInfo); // Extract and parse examMetaInfo
+        }
+        return task;
+      });
+
+      // Filter out any null tasks (i.e., tasks where userId is not in participants)
+      tasks = tasks.filter((task) => task !== null);
+
+      // Return the latest tasks or null if none found
+      return tasks;
+    },
+    async getPublisherLatestTasks(_: any, { userId }: { userId: string }) {
+      console.log("Fetching latest tasks for user:", userId);
+
+      try {
+        // Step 1: Fetch the latest 12 assignments created by the user with contentType = "TASK"
+        let assignments = await Resource.find({
+          createdBy: userId,
+          contentType: "TASK",
+        })
+          .sort({ createdAt: -1 })
+          .limit(12)
+          .populate({
+            path: "createdBy",
+            model: "User",
+            select: {
+              id: 1,
+              personalInfo: {
+                username: 1,
+                fullName: 1,
+                email: 1,
+                scholarId: 1,
+                activationToken: 1,
+                resetToken: 1,
+                tokenExpiry: 1,
+                activatedAccount: 1,
+              },
+              role: 1,
+            },
+          });
+
+        console.log("Step 1 assignments fetched:", assignments.length);
+
+        // Step 2: If no assignments are found, search for assignments where userId is in the participants array
+        if (!assignments || assignments.length === 0) {
+          console.log(
+            "No assignments found. Searching for participant assignments..."
+          );
+          assignments = await Resource.find({
+            contentType: "TASK",
+            participants: userId,
+          })
+            .sort({ createdAt: -1 })
+            .limit(12)
+            .populate({
+              path: "createdBy",
+              model: "User",
+              select: {
+                id: 1,
+                personalInfo: {
+                  username: 1,
+                  fullName: 1,
+                  email: 1,
+                  scholarId: 1,
+                  activationToken: 1,
+                  resetToken: 1,
+                  tokenExpiry: 1,
+                  activatedAccount: 1,
+                },
+                role: 1,
+              },
+            });
+
+          console.log(
+            "Step 2 participant assignments fetched:",
+            assignments.length
+          );
+        }
+
+        // Step 3: Parse the content and populate assignmentMetaInfo fields
+        // @ts-ignore
+        assignments = assignments.map((assignment) => {
+          try {
+            const parsedContent = JSON.parse(assignment.content || "{}"); // Parse the stringified content
+            const metaInfo = parsedContent.assignmentMetaInfo
+              ? JSON.parse(parsedContent.assignmentMetaInfo)
+              : {}; // Parse assignmentMetaInfo if it exists
+
+            console.log("Parsed assignmentMetaInfo:", metaInfo);
+
+            // Merge parsed meta info with the top-level fields into the final assignment object
+            return {
+              id: assignment.id,
+              title: assignment.title,
+              coverImage: assignment.coverImage,
+              description: assignment.description,
+              subject: assignment.subject,
+              topic: assignment.topic,
+              createdBy: assignment.createdBy,
+              createdAt: assignment.createdAt,
+              sessionId: assignment.sessionId,
+              accessKey: assignment.accessKey,
+              participants: assignment.participants,
+
+              // Fields from assignmentMetaInfo
+              assignmentType: metaInfo.assignmentType || null,
+              assignmentTitle: metaInfo.assignmentTitle || null,
+              assignmentDescription: metaInfo.assignmentDescription || null,
+              assignmentDuration: metaInfo.assignmentDuration || null,
+              assignmentDeadline: metaInfo.assignmentDeadline || null,
+              assignmentAnswersKey: parsedContent.assignmentAnswersKey
+                ? JSON.parse(parsedContent.assignmentAnswersKey)
+                : null, // Parse answers key as array
+              assignmentTaskSet: parsedContent.assignmentTaskSet
+                ? JSON.parse(parsedContent.assignmentTaskSet)
+                : null, // Parse task set as array
+            };
+          } catch (error) {
+            console.error(
+              "Error parsing content for assignment:",
+              assignment.id,
+              error
+            );
+            return assignment;
+          }
+        });
+
+        // Return the processed assignments or null if none found
+        console.log(
+          "Assignments processed and ready to return:",
+          assignments.length
+        );
+        return assignments;
+      } catch (error) {
+        console.error("Error fetching tasks for user:", userId, error);
+        throw new Error("Failed to fetch latest tasks");
+      }
+    },
     async getPublisherLatestExams(_: any, { userId }: { userId: string }) {
       console.log({ userId });
 
