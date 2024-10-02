@@ -359,253 +359,196 @@ router.post("/uploads/paper/enroll", async (req, res) => {
 
 // Handle POST request to /resources/uploads/exam/enroll
 router.post("/uploads/exam/enroll", async (req, res) => {
-  const { sessionId, participantsList } = req.body;
+  const { sessionId, action, participantId, participantIds } = req.body;
 
-  if (!sessionId || !participantsList) {
+  if (!sessionId || !action) {
     return res
       .status(400)
-      .json({ error: "Session ID and participants list are required" });
+      .json({ error: "Session ID and action are required" });
   }
 
   try {
-    // Fetch the Resource by sessionId
+    // Fetch the Paper by sessionId
     const resource = await Resource.findOne({ sessionId });
 
     if (!resource) {
       return res.status(404).json({ error: "Resource not found" });
     }
+    // @ts-ignore
+    let updatedParticipants = JSON.parse(resource.participants || "[]");
 
-    // Parse the participantsList from JSON
-    let parsedParticipantsList;
-    try {
-      parsedParticipantsList = JSON.parse(participantsList);
-    } catch (error) {
-      return res
-        .status(400)
-        .json({ error: "Invalid participants list format" });
-    }
+    if (action === "ACCEPT") {
+      // Accept a single participant
+      if (!participantId) {
+        return res
+          .status(400)
+          .json({ error: "Participant ID is required for accept" });
+      }
 
-    // Destructure ACCEPTED and REJECTED, and ensure they are arrays
-    const { ACCEPTED = [], REJECTED = [] } = parsedParticipantsList;
+      // Fetch and enroll participant
+      const participant = await User.findById(participantId);
+      if (participant) {
+        updatedParticipants.push({
+          userId: participantId,
+          requestStatus: "ENROLLED",
+          requestedDate: new Date(),
+          participantName: participant.personalInfo.fullName,
+          resourceResponses: [],
+        });
+      }
+    } else if (action === "REJECT") {
+      // Reject a single participant
+      if (!participantId) {
+        return res
+          .status(400)
+          .json({ error: "Participant ID is required for reject" });
+      }
 
-    // Define the helper function to handle participant updates
-    function updateParticipants(
-      resourceParticipants: any[],
-      acceptedRequests: string[],
-      rejectedRequests: string[]
-    ) {
-      const updatedParticipants = resourceParticipants
-        .map((participant: any) => {
-          if (acceptedRequests.includes(participant.userId)) {
-            participant.requestStatus = "ENROLLED";
-          } else if (rejectedRequests.includes(participant.userId)) {
-            return null; // Mark for removal if rejected
-          }
-          return participant;
-        })
-        .filter((participant: any) => participant !== null); // Remove rejected entries
-      return updatedParticipants;
-    }
+      // Remove participant from the list
+      updatedParticipants = updatedParticipants.filter(
+        (p: { userId: any }) => p.userId !== participantId
+      );
+    } else if (action === "ACCEPT_ALL") {
+      // Accept all participants
+      if (!participantIds || !Array.isArray(participantIds)) {
+        return res
+          .status(400)
+          .json({ error: "Participant IDs are required for accept all" });
+      }
 
-    let resourceParticipants = [];
-    if (resource.participants.length > 0) {
-      // Parse existing participants
-      resourceParticipants = JSON.parse(resource.participants);
-    }
-
-    // Update participants based on accepted and rejected lists
-    const updatedParticipants = updateParticipants(
-      resourceParticipants,
-      ACCEPTED,
-      REJECTED
-    );
-
-    // Add new participants from accepted requests
-    for (const userId of ACCEPTED) {
-      try {
-        // Fetch user by ID (ensure userId is a valid ObjectId string)
-        const participant = await User.findById(userId.userId);
+      for (const id of participantIds) {
+        const participant = await User.findById(id);
         if (participant) {
-          const participantDetails = {
-            sessionId,
-            userId: userId.userId,
-            requestedDate: new Date(), // Current date and time
+          updatedParticipants.push({
+            userId: id,
             requestStatus: "ENROLLED",
+            requestedDate: new Date(),
             participantName: participant.personalInfo.fullName,
             resourceResponses: [],
-          };
-          // Add new participant details to the list
-          updatedParticipants.push(participantDetails);
-        } else {
-          console.error(`User not found for ID ${userId}`);
+          });
         }
-      } catch (error) {
-        console.error(`Error fetching user with ID ${userId}:`, error);
       }
     }
-    // clean
-    const cleanedParticipants = Array.from(
+
+    // Remove duplicates by userId (in case of multiple accepts)
+    const uniqueParticipants = Array.from(
       new Map(
-        updatedParticipants
-          .filter(
-            (participant: any) => participant.requestStatus === "ENROLLED"
-          )
-          .map((participant: any) => [participant.userId, participant])
+        updatedParticipants.map((p: { userId: any }) => [p.userId, p])
       ).values()
     );
-    // Function to remove duplicates based on a specific field
-    function removeDuplicates(arr: any[], field: string) {
-      const seen = new Set();
-      return arr.reduce((unique: any[], item: { [x: string]: unknown }) => {
-        if (!seen.has(item[field])) {
-          seen.add(item[field]);
-          unique.push(item);
-        }
-        return unique;
-      }, []);
-    }
 
-    const uniqueArray = removeDuplicates(cleanedParticipants, "userId");
-
-    resource.participants = JSON.stringify(uniqueArray);
-
+    // Update resource participants
+    resource.participants = JSON.stringify(uniqueParticipants);
     await resource.save();
 
-    // Respond with a success message
     res.json({
       message: "Participant data updated successfully",
-      updatedParticipants,
+      participants: uniqueParticipants,
     });
   } catch (error) {
     console.error("Error processing participant data:", error);
-    res.status(500).json({ error: "An error occurred while processing data" });
+    res
+      .status(500)
+      .json({ error: "An error occurred while processing participant data" });
   }
 });
 
-// Handle POST request to /resources/uploads/exam/enroll
+// Handle POST request to /resources/uploads/assignment/enroll
 router.post("/uploads/assignment/enroll", async (req, res) => {
-  const { sessionId, participantsList } = req.body;
+  const { sessionId, action, participantId, participantIds } = req.body;
 
-  if (!sessionId || !participantsList) {
+  if (!sessionId || !action) {
     return res
       .status(400)
-      .json({ error: "Session ID and participants list are required" });
+      .json({ error: "Session ID and action are required" });
   }
 
   try {
-    // Fetch the Resource by sessionId
+    // Fetch the Paper by sessionId
     const resource = await Resource.findOne({ sessionId });
 
     if (!resource) {
       return res.status(404).json({ error: "Resource not found" });
     }
+    // @ts-ignore
+    let updatedParticipants = JSON.parse(resource.participants || "[]");
 
-    // Parse the participantsList from JSON
-    let parsedParticipantsList;
-    try {
-      parsedParticipantsList = JSON.parse(participantsList);
-    } catch (error) {
-      return res
-        .status(400)
-        .json({ error: "Invalid participants list format" });
-    }
+    if (action === "ACCEPT") {
+      // Accept a single participant
+      if (!participantId) {
+        return res
+          .status(400)
+          .json({ error: "Participant ID is required for accept" });
+      }
 
-    // Destructure ACCEPTED and REJECTED, and ensure they are arrays
-    const { ACCEPTED = [], REJECTED = [] } = parsedParticipantsList;
+      // Fetch and enroll participant
+      const participant = await User.findById(participantId);
+      if (participant) {
+        updatedParticipants.push({
+          userId: participantId,
+          requestStatus: "ENROLLED",
+          requestedDate: new Date(),
+          participantName: participant.personalInfo.fullName,
+          resourceResponses: [],
+        });
+      }
+    } else if (action === "REJECT") {
+      // Reject a single participant
+      if (!participantId) {
+        return res
+          .status(400)
+          .json({ error: "Participant ID is required for reject" });
+      }
 
-    // Define the helper function to handle participant updates
-    function updateParticipants(
-      resourceParticipants: any[],
-      acceptedRequests: string[],
-      rejectedRequests: string[]
-    ) {
-      const updatedParticipants = resourceParticipants
-        .map((participant: any) => {
-          if (acceptedRequests.includes(participant.userId)) {
-            participant.requestStatus = "ENROLLED";
-          } else if (rejectedRequests.includes(participant.userId)) {
-            return null; // Mark for removal if rejected
-          }
-          return participant;
-        })
-        .filter((participant: any) => participant !== null); // Remove rejected entries
-      return updatedParticipants;
-    }
+      // Remove participant from the list
+      updatedParticipants = updatedParticipants.filter(
+        (p: { userId: any }) => p.userId !== participantId
+      );
+    } else if (action === "ACCEPT_ALL") {
+      // Accept all participants
+      if (!participantIds || !Array.isArray(participantIds)) {
+        return res
+          .status(400)
+          .json({ error: "Participant IDs are required for accept all" });
+      }
 
-    let resourceParticipants = [];
-    if (resource.participants.length > 0) {
-      // Parse existing participants
-      resourceParticipants = JSON.parse(resource.participants);
-    }
-
-    // Update participants based on accepted and rejected lists
-    const updatedParticipants = updateParticipants(
-      resourceParticipants,
-      ACCEPTED,
-      REJECTED
-    );
-
-    // Add new participants from accepted requests
-    for (const userId of ACCEPTED) {
-      try {
-        // Fetch user by ID (ensure userId is a valid ObjectId string)
-        const participant = await User.findById(userId.userId);
+      for (const id of participantIds) {
+        const participant = await User.findById(id);
         if (participant) {
-          const participantDetails = {
-            sessionId,
-            userId: userId.userId,
-            requestedDate: new Date(), // Current date and time
+          updatedParticipants.push({
+            userId: id,
             requestStatus: "ENROLLED",
+            requestedDate: new Date(),
             participantName: participant.personalInfo.fullName,
             resourceResponses: [],
-          };
-          // Add new participant details to the list
-          updatedParticipants.push(participantDetails);
-        } else {
-          console.error(`User not found for ID ${userId}`);
+          });
         }
-      } catch (error) {
-        console.error(`Error fetching user with ID ${userId}:`, error);
       }
     }
-    // clean
-    const cleanedParticipants = Array.from(
+
+    // Remove duplicates by userId (in case of multiple accepts)
+    const uniqueParticipants = Array.from(
       new Map(
-        updatedParticipants
-          .filter(
-            (participant: any) => participant.requestStatus === "ENROLLED"
-          )
-          .map((participant: any) => [participant.userId, participant])
+        updatedParticipants.map((p: { userId: any }) => [p.userId, p])
       ).values()
     );
-    // Function to remove duplicates based on a specific field
-    function removeDuplicates(arr: any[], field: string) {
-      const seen = new Set();
-      return arr.reduce((unique: any[], item: { [x: string]: unknown }) => {
-        if (!seen.has(item[field])) {
-          seen.add(item[field]);
-          unique.push(item);
-        }
-        return unique;
-      }, []);
-    }
 
-    const uniqueArray = removeDuplicates(cleanedParticipants, "userId");
-
-    resource.participants = JSON.stringify(uniqueArray);
-
+    // Update resource participants
+    resource.participants = JSON.stringify(uniqueParticipants);
     await resource.save();
 
-    // Respond with a success message
     res.json({
       message: "Participant data updated successfully",
-      updatedParticipants,
+      participants: uniqueParticipants,
     });
   } catch (error) {
     console.error("Error processing participant data:", error);
-    res.status(500).json({ error: "An error occurred while processing data" });
+    res
+      .status(500)
+      .json({ error: "An error occurred while processing participant data" });
   }
 });
+
 router.post("/uploads/assignment/participant", async (req, res) => {
   const { sessionId, userId } = req.body;
 
@@ -674,6 +617,66 @@ router.post("/uploads/assignment/participant", async (req, res) => {
   } catch (error) {
     console.error("Error processing participant data:", error);
     res.status(500).json({ error: "An error occurred while processing data" });
+  }
+});
+
+router.post("/uploads/exam/update", async (req, res) => {
+  const sessionId = req.query.sessionId;
+  console.log("Session ID:", sessionId);
+
+  // Validate sessionId in the query string
+  if (!sessionId) {
+    return res.status(400).json({ error: "Session ID is required" });
+  }
+
+  // Extract the body data sent by the client
+  const { examDate, examStartTime, examDuration, examEndTime } = req.body;
+
+  // Validate if the required fields are provided
+  if (!examDate || !examStartTime || !examDuration || !examEndTime) {
+    return res.status(400).json({
+      error: "Exam date, start time, duration, and end time are required.",
+    });
+  }
+
+  try {
+    // Find the resource by sessionId
+    const resource = await Resource.findOne({ sessionId });
+
+    // Check if resource exists
+    if (!resource) {
+      return res.status(404).json({ error: "Resource not found" });
+    }
+
+    // Parse the content to extract examMetaInfo
+    let content = JSON.parse(resource.content);
+    let examMetaInfo = JSON.parse(content.examMetaInfo);
+
+    // Update the exam metadata fields with the new values
+    examMetaInfo.examDate = examDate;
+    examMetaInfo.examStartTime = examStartTime;
+    examMetaInfo.examDuration = examDuration;
+    examMetaInfo.examEndTime = examEndTime;
+
+    // Save the updated examMetaInfo back to the content
+    content.examMetaInfo = JSON.stringify(examMetaInfo);
+
+    // Update the resource content with the modified content
+    resource.content = JSON.stringify(content);
+
+    // Save the updated resource to the database
+    await resource.save();
+
+    // Respond with success
+    res.json({
+      message: "Exam meta information updated successfully",
+      resource,
+    });
+  } catch (error) {
+    console.error("Error updating resource:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while processing the request" });
   }
 });
 

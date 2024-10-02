@@ -2,10 +2,28 @@ import { IResource } from "../models/Resource";
 import Resource from "../models/Resource";
 import { generateUniqueCode } from "../utils/identifier_generator";
 import generateAccessKey from "../utils/accessKeyUtility";
+
+import { DateTime } from "luxon";
 const cron = require("node-cron");
 
-
 /*
+cron.schedule("*\/15 * * * * *", async () => {
+  try {
+    // Update all documents
+    const result = await Resource.updateMany(
+      {}, // No filter means all documents will be updated
+      {
+        $set: {
+          reviews: "[]", // Set reviews field to an empty array
+        },
+      }
+    );
+
+    console.log(`Updated ${result.modifiedCount} items.`); // Use modifiedCount for a better understanding of the result
+  } catch (err) {
+    console.error("Error updating items:", err);
+  }
+});
 cron.schedule("*\/15 * * * * *", async () => {
   try {
     const result = await Resource.deleteMany({ contentType: "TASK" });
@@ -465,6 +483,132 @@ const resourceResolver = {
         throw new Error("Failed to fetch latest tasks");
       }
     },
+    async getCurrentExam(_: any, { sessionId }: { sessionId: string }) {
+      console.log({ sessionId });
+
+      // Step 1: Fetch the latest 12 exams created by the user with contentType = "TEST"
+      let exams = await Resource.find({
+        sessionId,
+        contentType: "TEST",
+      })
+        .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+        .limit(12) // Limit the results to the last 12 items
+        .populate({
+          path: "createdBy",
+          model: "User",
+          select: {
+            id: 1,
+            personalInfo: {
+              username: 1,
+              fullName: 1,
+              email: 1,
+              scholarId: 1,
+              activationToken: 1,
+              resetToken: 1,
+              tokenExpiry: 1,
+              activatedAccount: 1,
+            },
+            role: 1,
+          },
+        });
+
+      if (exams.length === 0) return null; // Return null if no exams are found
+
+      const currentExam = exams[0]; // Select the latest exam for processing
+      console.log({ currentExam });
+
+      // Step 2: Parse exam content and retrieve examMetaInfo for each exam
+      const parsedContent = JSON.parse(currentExam.content);
+      const examMetaInfo = JSON.parse(parsedContent.examMetaInfo);
+      console.log({ parsedContent, examMetaInfo });
+
+      // Populate question set and answer key within examMetaInfo
+      examMetaInfo.examAnswersKey = JSON.parse(parsedContent.examAnswersKey);
+      examMetaInfo.examQuestionsSet = JSON.parse(
+        parsedContent.examQuestionsSet
+      );
+
+      // Step 3: Parse exam date and start time
+      const { DateTime } = require("luxon");
+      // @ts-ignore
+      function getCurrentMillisFromExamTime(examStartTime) {
+        // Split the exam start time into hours, minutes, and timezone
+        const [time, timezone] = examStartTime.split(" ");
+        const [hour, minute] = time.split(":").map(Number);
+
+        // Create a DateTime object for the given time today in the specified timezone
+        const now = DateTime.now().setZone(timezone);
+        const examTime = DateTime.fromObject(
+          { hour, minute },
+          { zone: timezone }
+        ).set({ year: now.year, month: now.month, day: now.day });
+
+        // Get current time in milliseconds
+        const currentMillis = DateTime.now().toMillis();
+
+        return { currentMillis, examTimeMillis: examTime.toMillis() };
+      }
+
+      // Example usage
+      const examStartTime = examMetaInfo.examStartTime;
+      const { currentMillis, examTimeMillis } =
+        getCurrentMillisFromExamTime(examStartTime);
+
+      function parseDurationToMillis(durationString: string) {
+        // Use a regular expression to match hours and minutes
+        const regex = /(\d+)\s*hrs?\s*:\s*(\d+)\s*mins?/;
+        const match = durationString.match(regex);
+
+        if (!match) {
+          throw new Error("Invalid duration format");
+        }
+
+        // Extract hours and minutes from the matched groups
+        const hours = parseInt(match[1], 10) || 0;
+        const minutes = parseInt(match[2], 10) || 0;
+
+        // Convert hours and minutes to milliseconds
+        const totalMillis = hours * 60 * 60 * 1000 + minutes * 60 * 1000;
+        return totalMillis;
+      }
+
+      // Example usage
+      const durationString = examMetaInfo.examDuration; // "3 hrs : 0 mins";
+      const examEndTime =
+        parseDurationToMillis(durationString) + examTimeMillis;
+
+      // Step 6: Check if the current time falls within the exam time window
+      const isCurrentTimeInRange =
+        currentMillis >= examTimeMillis && currentMillis <= examEndTime;
+
+      console.log({ examTimeMillis, currentMillis, examEndTime });
+      console.log("Is current time in range:", isCurrentTimeInRange);
+
+      const exams2 = exams.map((exam) => {
+        const parsedContent = JSON.parse(exam.content); // Parse the stringified content
+        console.log({ parsedContent: parsedContent.examMetaInfo });
+        if (parsedContent) {
+          // @ts-ignore
+          exam.examMetaInfo = JSON.parse(parsedContent.examMetaInfo); // Extract and parse testMeta
+          // Include the answers key and questions set inside examMetaInfo
+          // @ts-ignore
+          exam.examMetaInfo.examAnswersKey = JSON.parse(
+            parsedContent.examAnswersKey
+          );
+          // @ts-ignore
+          exam.examMetaInfo.examQuestionsSet = JSON.parse(
+            parsedContent.examQuestionsSet
+          );
+        }
+        return exam;
+      });
+
+      const currentExam2 = exams2[0];
+
+      // Return the current exam based on time check
+      return isCurrentTimeInRange ? currentExam2 : null;
+    },
+
     async getPublisherLatestExams(_: any, { userId }: { userId: string }) {
       console.log({ userId });
 
@@ -790,6 +934,7 @@ const resourceResolver = {
         throw new Error("Failed to fetch resources");
       }
     },
+    // summary
     async fetchResourceSummaryByRoleAndType() {
       try {
         // Aggregation to count resources by contentType
@@ -823,35 +968,46 @@ const resourceResolver = {
           },
           {
             $group: {
-              _id: { month: { $month: "$createdAt" } }, // Extract month from createdAt
+              _id: {
+                year: { $year: "$createdAt" }, // Extract year from createdAt
+                month: { $month: "$createdAt" }, // Extract month from createdAt
+              },
               count: { $sum: 1 },
             },
           },
-          { $sort: { "_id.month": 1 } },
+          { $sort: { "_id.year": 1, "_id.month": 1 } },
         ]);
 
+        // Check for null month values
+        publicationTrends.forEach((item) => {
+          if (item._id.month === null) {
+            console.warn("Found a null month in publication trends", item);
+          }
+        });
+
         const monthNames = [
-          "January",
-          "February",
-          "March",
-          "April",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
           "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ];
 
         // Format publication trends to a readable format
         const formattedPublicationTrends = publicationTrends
           .map((item) => {
-            const monthIndex = item._id.month - 1;
+            const monthIndex = item._id.month ? item._id.month - 1 : -1; // Set to -1 if month is null
+            const year = String(item._id.year).slice(-2); // Get last two digits of the year
             if (monthIndex >= 0 && monthIndex < monthNames.length) {
-              const month = monthNames[monthIndex].slice(0, 3); // Use short month name
-              return { period: month, count: item.count };
+              const month = monthNames[monthIndex]; // Use short month name
+              return { period: `${month} '${year}`, count: item.count }; // Format as 'Aug '24
             }
             return null;
           })
@@ -881,6 +1037,7 @@ const resourceResolver = {
         throw error; // Propagate the error for handling
       }
     },
+
     async getResources(_: any, args: IGetResourcesArgs) {
       try {
         // Build the filter object based on the provided arguments

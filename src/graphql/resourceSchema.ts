@@ -111,6 +111,8 @@ export const resourceTypeDefs = gql`
   type ExamMetaDetails {
     examDate: String
     examStartTime: String
+    examQuestionsSet: [String]
+    examAnswersKey: [String]
     examDuration: String
     examEndTime: String
     selectedTypes: [String]
@@ -165,6 +167,8 @@ export const resourceTypeDefs = gql`
 
   type Query {
     getPublisherLatestExams(userId: String!): [ExamMetaInfo]
+    getCurrentExam(sessionId: String!): ExamMetaInfo
+
     getPublisherLatestTasks(userId: String!): [AssignmentMetaInfo]
     fetchResourceSummaryByRoleAndType: [ResourceSummary!]!
 

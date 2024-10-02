@@ -115,6 +115,7 @@ const ResourceSchema: Schema<IResource> = new Schema(
     participants: {
       type: String,
       trim: true,
+      default: "[]",
     },
     contentType: {
       type: String,

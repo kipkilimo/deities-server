@@ -167,9 +167,17 @@ const paperResolver = {
         ].slice(0, 12);
 
         console.log("success:", allPapers);
-
+        const uniquePapers = allPapers.reduce((acc, current) => {
+          // @ts-ignore
+          const x = acc.find((item) => item.id === current.id);
+          if (!x) {
+            // @ts-ignore
+            acc.push(current);
+          }
+          return acc;
+        }, []);
         // Return only the array of papers
-        return allPapers;
+        return uniquePapers;
       } catch (error) {
         console.error("Error fetching the most recent papers:", error);
         throw new Error("Error fetching the most recent papers");
