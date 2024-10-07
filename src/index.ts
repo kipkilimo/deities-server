@@ -32,11 +32,11 @@ interface Context {
   pubsub: PubSub;
   // Add other context properties if needed
 }
+// Configure CORS with specific origins in production
 
 const startServer = async () => {
   const app = express();
   const pubsub = new PubSub();
-
   // Configure CORS with specific origins in production
   app.use(
     cors({
@@ -89,6 +89,14 @@ const startServer = async () => {
   );
 
   connectDB();
+
+  // CORS setup
+  app.use(
+    cors({
+      origin: "*",
+      credentials: true,
+    })
+  );
 
   // Use the file routes
   app.post("/delete-files", s3Deleter);

@@ -267,17 +267,18 @@ const resourceResolver = {
     //   },
   },
   Query: {
-    // getUserTasks(userId: string) {
     async getUserTasks(_: any, { userId }: { userId: string }) {
-      console.log({ userId });
+      // Step 1: Calculate the timestamp for one month ago (30 days in milliseconds)
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-      // Step 1: Fetch the latest 12 tasks created by the user with contentType = "TASK"
-      let tasks = await Resource.find({
-        createdBy: userId,
+      // Step 2: Fetch tasks created in the past month with contentType = "TASK"
+      const tasks = await Resource.find({
         contentType: "TASK",
+        createdAt: {
+          $gte: oneMonthAgo, // Compare directly with the Date object
+        },
       })
-        .sort({ createdAt: -1 }) // Sort by createdAt in descending order
-        .limit(12) // Limit the results to the last 12 items
         .populate({
           path: "createdBy",
           model: "User",
@@ -295,66 +296,35 @@ const resourceResolver = {
             },
             role: 1,
           },
-        });
-
-      // Step 2: If no tasks are found, search for tasks where userId is in the participants array
-      if (!tasks || tasks.length === 0) {
-        tasks = await Resource.find({
-          contentType: "TASK",
-          participants: userId, // Search in participants array
         })
-          .sort({ createdAt: -1 }) // Sort by createdAt in descending order
-          .limit(12) // Limit the results to the last 12 items
-          .populate({
-            path: "createdBy",
-            model: "User",
-            select: {
-              id: 1,
-              personalInfo: {
-                username: 1,
-                fullName: 1,
-                email: 1,
-                scholarId: 1,
-                activationToken: 1,
-                resetToken: 1,
-                tokenExpiry: 1,
-                activatedAccount: 1,
-              },
-              role: 1,
-            },
-          });
-      }
+        .sort({ createdAt: -1 });
 
-      // Step 3: Parse the content field and look for userId in participants within the JSON
-      // @ts-ignore
-      tasks = tasks.map((task) => {
-        const parsedContent = JSON.parse(task.content); // Parse the stringified content
-        console.log({ parsedContent: parsedContent.examMetaInfo });
+      // Step 3: Filter tasks where userId is in participants and has "ENROLLED" status
+      const filteredTasks = tasks.filter(
+        (task: { participants: string; _id: any }) => {
+          try {
+            const participants = JSON.parse(task.participants); // Parse the participants once to extract participants
 
-        if (parsedContent && parsedContent.participants) {
-          const participants = parsedContent.participants; // Extract participants array from JSON content
-          if (participants.includes(userId)) {
-            // If userId is found in participants, continue processing
-            console.log(`User ${userId} is in participants`);
-          } else {
-            // If userId is not in participants, discard this task
-            console.log(
-              `User ${userId} is not in participants, excluding task`
+            // Check if participants is an array and userId exists with "ENROLLED" status
+            return participants.some(
+              (participant: { userId: string; requestStatus: string }) =>
+                participant.userId === userId &&
+                participant.requestStatus === "ENROLLED"
             );
-            return null;
+          } catch (error) {
+            console.error(
+              `Error parsing task content for task ${task._id}:`,
+              error
+            );
+            return false; // Exclude the task if there's an error
           }
-
-          // @ts-ignore
-          task.examMetaInfo = JSON.parse(parsedContent.examMetaInfo); // Extract and parse examMetaInfo
         }
-        return task;
-      });
+      );
 
-      // Filter out any null tasks (i.e., tasks where userId is not in participants)
-      tasks = tasks.filter((task) => task !== null);
+      console.log({ filteredTasks });
 
-      // Return the latest tasks or null if none found
-      return tasks;
+      // Step 4: Return the filtered tasks or an empty array if none found
+      return filteredTasks;
     },
     async getPublisherLatestTasks(_: any, { userId }: { userId: string }) {
       console.log("Fetching latest tasks for user:", userId);
