@@ -15,6 +15,13 @@ export const departmentTypeDefs = gql`
     credits: Int!
   }
 
+  type Payment {
+    paymentId: ID!
+    paymentDate: String!
+    paymentCode: String!
+    amount: Int!
+  }
+
   type Program {
     programId: ID!
     name: String!
@@ -22,19 +29,24 @@ export const departmentTypeDefs = gql`
     duration: Int!
     requiredCredits: Int!
     coursesOffered: [Course!]!
+    payments: [Payment]
   }
 
   type Department {
-    departmentId: ID!
-    name: String!
-    faculty: [User!]! # Using imported User type for faculty
-    programs: [Program!]!
-    students: [User!]! # Using imported User type for students
+    id: ID
+    departmentId: String
+    name: String
+    parent_institution: String
+    phone_number: String
+    email_address: String
+    faculty: [User] # Using imported User type for faculty
+    programs: [Program]
+    students: [User] # Using imported User type for students
   }
 
   type Query {
     getDepartment(departmentId: ID!): Department
-    getDepartments: [Department!]!
+    getDepartments: [Department]
   }
 
   type Mutation {

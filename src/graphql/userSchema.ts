@@ -43,6 +43,7 @@ const userTypeDefs = gql`
     dateOfBirth: String
     gender: String
     password: String
+    publication_credits: String
     username: String!
     location: Location
     website: String
@@ -76,13 +77,28 @@ const userTypeDefs = gql`
     lastLogin: Date
     accountCreationDate: Date!
   }
-
+  type DiscussionGroup {
+    id: ID!
+    # Other fields
+  }
+  type Department {
+    id: ID!
+    # Other fields
+  }
   type User {
+    id: ID!
     personalInfo: PersonalInfo!
     academicInfo: AcademicInfo
     accountSettings: AccountSettings
     activityInfo: ActivityInfo
     role: Role
+
+    discussion_groups: [DiscussionGroup]
+    departments: [Department]
+
+    favorite_resources: [Resource]
+    recent_resources: [Resource]
+    suggested_resources: [Resource]
   }
 
   type LoginResponse {
@@ -93,7 +109,6 @@ const userTypeDefs = gql`
   type Query {
     getUser(scholarId: String!): User
     getUsers: [User]
-
     getCurrentUser(sessionId: String!): User
   }
 
@@ -112,6 +127,10 @@ const userTypeDefs = gql`
     singleSignInRequest(email: String!): User
     singleSigninLogin(accessKey: String!): LoginResponse
     deleteUserByScholarId(scholarId: String!): User
+
+    suggestResources(userId: String!): [Resource]
+    addResourceToRecents(userId: String!): [Resource]
+    addResourceToFavorites(userId: String!): [Resource]
   }
 
   input LocationInput {

@@ -21,7 +21,31 @@ enum ResourceType {
   TASK = "TASK",
   COMPUTING = "COMPUTING",
 }
+/*
+{
+  "AUDIO": 10,
+  "VIDEO": 10,
+  "IMAGES": 5,
+  "DOCUMENT": 20,
+  "MIXED": 50,
+  "TEXT": 20,
+  "PRESENTATION": 10,
+  "EVENT": 100,
+  "DATASET": 20,
+  "LINK": 5,
+  "POLL": 50,
+  "TEST": 5,
+  "MODEL": 10,
+  "POSTER": 4,
+  "ARTICLE": 5,
+  "JOB": 200,
+  "TASK": 5,
+  "COMPUTING": 20
+}
 
+
+
+*/
 // Define the interface for the Resource schema
 export interface IResource extends Document {
   title: string;

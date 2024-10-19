@@ -32,6 +32,8 @@ const personalInfoSchema = new Schema({
   institution: { type: String },
   department: { type: String, default: "" },
   profilePicture: { type: String, default: "" },
+  publication_credits: { type: String, default: "0" },
+
   bio: { type: String, default: "" },
   dateOfBirth: { type: String, default: "" },
   gender: { type: String, default: "" },
@@ -85,6 +87,41 @@ const userSchema = new Schema({
     enum: ["STUDENT", "MENTOR", "FACULTY", "ASSISTANT", "ADMIN", "SUPER"],
     default: "STUDENT",
   },
+  discussion_groups: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "DiscussionGroup", // Ensure DiscussionGroup model exists
+    },
+  ],
+  departments: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Department", // Ensure Department model exists
+    },
+  ],
+  favorite_resources: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Resource", // Ensure Resource model exists
+    },
+  ],
+  recent_resources: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Resource", // Ensure Resource model exists
+    },
+  ],
+  suggested_resources: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Resource", // Ensure Resource model exists
+    },
+  ],
 });
 
 // Create the User model

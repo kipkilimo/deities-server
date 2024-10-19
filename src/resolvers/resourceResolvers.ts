@@ -1,12 +1,99 @@
 import { IResource } from "../models/Resource";
 import Resource from "../models/Resource";
+import User from "../models/User";
+
 import { generateUniqueCode } from "../utils/identifier_generator";
 import generateAccessKey from "../utils/accessKeyUtility";
 
-import { DateTime } from "luxon";
+import { publicationCreditCharges } from "../utils/publicationCredits";
 const cron = require("node-cron");
 
 /*
+cron.schedule("*\/15 * * * * *", async () => {
+  try {
+    // Update all users
+    const result = await User.updateMany(
+      {}, // No filter means all users will be updated
+      {
+        $set: { 
+          departments: [],           
+          discussion_groups: [],
+        },
+      }
+    );
+
+    console.log(`Updated ${result.modifiedCount} users.`); // Use modifiedCount for the count of updated documents
+  } catch (err) {
+    console.error("Error updating users:", err);
+  }
+});
+
+cron.schedule("*\/15 * * * * *", async () => {
+  try {
+    // Update all users
+    const result = await User.updateMany(
+      {}, // No filter means all users will be updated
+      {
+        $set: {
+              discussion_group: null
+    department: []
+
+    favorite_resources: []
+    recent_resources: []
+    suggested_resources: []
+        },
+      }
+    );
+
+    console.log(`Updated ${result.modifiedCount} users.`); // Use modifiedCount for the count of updated documents
+  } catch (err) {
+    console.error("Error updating users:", err);
+  }
+});
+
+
+cron.schedule("*\/15 * * * * *", async () => {
+  try {
+    // Update all users
+    const result = await User.updateMany(
+      {}, // No filter means all users will be updated
+      {
+        $set: {
+          publication_credits: "0", // Set reviews field to an empty array
+        },
+      }
+    );
+
+    console.log(`Updated ${result.modifiedCount} items.`); // Use modifiedCount for a better understanding of the result
+  } catch (err) {
+    console.error("Error updating items:", err);
+  }
+});
+
+
+
+
+
+cron.schedule("*\/15 * * * * *", async () => {
+  try {
+    // Update all documents
+    const result = await Resource.updateMany(
+      {}, // No filter means all documents will be updated
+      {
+        $set: {
+          reviews: "[]", // Set reviews field to an empty array
+        },
+      }
+    );
+
+    console.log(`Updated ${result.modifiedCount} items.`); // Use modifiedCount for a better understanding of the result
+  } catch (err) {
+    console.error("Error updating items:", err);
+  }
+});
+
+
+
 cron.schedule("*\/15 * * * * *", async () => {
   try {
     // Update all documents
@@ -111,6 +198,40 @@ const resourceResolver = {
           createdBy,
         });
 
+        const currentPublisher = await User.findById(createdBy);
+        if (!currentPublisher) {
+          throw new Error("No teacher matching provided details");
+        }
+        // Define the structure of each charge item
+        interface PublicationCreditCharge {
+          type: string;
+          key: string;
+          credits: number;
+        }
+        function getCreditsForType(
+          resourceType: string,
+          publicationCreditCharges: PublicationCreditCharge[]
+        ): number {
+          const matchingCharge = publicationCreditCharges.find(
+            (charge) => charge.key === resourceType
+          );
+          // Return the credits if found, otherwise return 0
+          return matchingCharge ? matchingCharge.credits : 0;
+        }
+        const creditMenu = publicationCreditCharges;
+        const resourceType = contentType;
+
+        const creditsToLess = getCreditsForType(resourceType, creditMenu);
+        const newCredit =
+          Number(currentPublisher.personalInfo.publication_credits) -
+          creditsToLess;
+
+        await User.findByIdAndUpdate(currentPublisher.id, {
+          $set: {
+            publication_credits: newCredit,
+          },
+        });
+
         // Save the new resource document to the database
         await resource.save();
 
@@ -181,28 +302,6 @@ const resourceResolver = {
     ) {
       try {
         // Log the provided arguments for debugging
-        console.log({
-          id,
-          title,
-          description,
-          content,
-          targetRegion,
-          targetCountry,
-          slug,
-          language,
-          contentType,
-          viewsNumber,
-          likesNumber,
-          sharesNumber,
-          rating,
-          sessionId,
-          accessKey,
-          keywords,
-          coverImage,
-          isPublished,
-          averageRating,
-          reviews,
-        });
 
         // Find the resource by ID and update it with the provided fields
         const updatedResource = await Resource.findByIdAndUpdate(
@@ -321,14 +420,10 @@ const resourceResolver = {
         }
       );
 
-      console.log({ filteredTasks });
-
       // Step 4: Return the filtered tasks or an empty array if none found
       return filteredTasks;
     },
     async getPublisherLatestTasks(_: any, { userId }: { userId: string }) {
-      console.log("Fetching latest tasks for user:", userId);
-
       try {
         // Step 1: Fetch the latest 12 assignments created by the user with contentType = "TASK"
         let assignments = await Resource.find({
@@ -356,13 +451,8 @@ const resourceResolver = {
             },
           });
 
-        console.log("Step 1 assignments fetched:", assignments.length);
-
         // Step 2: If no assignments are found, search for assignments where userId is in the participants array
         if (!assignments || assignments.length === 0) {
-          console.log(
-            "No assignments found. Searching for participant assignments..."
-          );
           assignments = await Resource.find({
             contentType: "TASK",
             participants: userId,
@@ -387,11 +477,6 @@ const resourceResolver = {
                 role: 1,
               },
             });
-
-          console.log(
-            "Step 2 participant assignments fetched:",
-            assignments.length
-          );
         }
 
         // Step 3: Parse the content and populate assignmentMetaInfo fields
@@ -402,8 +487,6 @@ const resourceResolver = {
             const metaInfo = parsedContent.assignmentMetaInfo
               ? JSON.parse(parsedContent.assignmentMetaInfo)
               : {}; // Parse assignmentMetaInfo if it exists
-
-            console.log("Parsed assignmentMetaInfo:", metaInfo);
 
             // Merge parsed meta info with the top-level fields into the final assignment object
             return {
@@ -442,11 +525,6 @@ const resourceResolver = {
           }
         });
 
-        // Return the processed assignments or null if none found
-        console.log(
-          "Assignments processed and ready to return:",
-          assignments.length
-        );
         return assignments;
       } catch (error) {
         console.error("Error fetching tasks for user:", userId, error);
@@ -454,8 +532,6 @@ const resourceResolver = {
       }
     },
     async getCurrentExam(_: any, { sessionId }: { sessionId: string }) {
-      console.log({ sessionId });
-
       // Step 1: Fetch the latest 12 exams created by the user with contentType = "TEST"
       let exams = await Resource.find({
         sessionId,
@@ -485,12 +561,10 @@ const resourceResolver = {
       if (exams.length === 0) return null; // Return null if no exams are found
 
       const currentExam = exams[0]; // Select the latest exam for processing
-      console.log({ currentExam });
 
       // Step 2: Parse exam content and retrieve examMetaInfo for each exam
       const parsedContent = JSON.parse(currentExam.content);
       const examMetaInfo = JSON.parse(parsedContent.examMetaInfo);
-      console.log({ parsedContent, examMetaInfo });
 
       // Populate question set and answer key within examMetaInfo
       examMetaInfo.examAnswersKey = JSON.parse(parsedContent.examAnswersKey);
@@ -551,12 +625,8 @@ const resourceResolver = {
       const isCurrentTimeInRange =
         currentMillis >= examTimeMillis && currentMillis <= examEndTime;
 
-      console.log({ examTimeMillis, currentMillis, examEndTime });
-      console.log("Is current time in range:", isCurrentTimeInRange);
-
       const exams2 = exams.map((exam) => {
         const parsedContent = JSON.parse(exam.content); // Parse the stringified content
-        console.log({ parsedContent: parsedContent.examMetaInfo });
         if (parsedContent) {
           // @ts-ignore
           exam.examMetaInfo = JSON.parse(parsedContent.examMetaInfo); // Extract and parse testMeta
@@ -580,8 +650,6 @@ const resourceResolver = {
     },
 
     async getPublisherLatestExams(_: any, { userId }: { userId: string }) {
-      console.log({ userId });
-
       // Step 1: Fetch the latest 12 exams created by the user with contentType = "TEST"
       let exams = await Resource.find({
         createdBy: userId,
@@ -637,7 +705,6 @@ const resourceResolver = {
       }
       exams = exams.map((exam) => {
         const parsedContent = JSON.parse(exam.content); // Parse the stringified content
-        console.log({ parsedContent: parsedContent.examMetaInfo });
         if (parsedContent) {
           // @ts-ignore
           exam.examMetaInfo = JSON.parse(parsedContent.examMetaInfo); // Extract and parse testMeta
@@ -649,8 +716,6 @@ const resourceResolver = {
       return exams;
     },
     async getPublisherLatestPoll(_: any, { userId }: { userId: String }) {
-      console.log({ userId });
-
       // Step 1: Fetch the latest poll created by the user
       let poll = await Resource.findOne({
         createdBy: userId,
@@ -704,7 +769,6 @@ const resourceResolver = {
       }
 
       // Return the latest poll or null if none found
-      console.log({ poll });
       return poll;
     },
     //  async fetchComputingResource(topicParams: string)
@@ -715,8 +779,6 @@ const resourceResolver = {
       try {
         // Parse the incoming params
         const params = JSON.parse(topicParams);
-
-        console.log({ resourceParamsLang: params.language });
         const queryLang = String(params.language);
         // Query for resources by title (matching topic) and populate creator information
         const resources = await Resource.find({
@@ -751,7 +813,6 @@ const resourceResolver = {
           const resourceR = JSON.parse(resource.content);
           return resource;
         } else {
-          console.log("No resource found for the given language.");
           return null; // Return null or an appropriate error object
         }
       } catch (error) {
@@ -854,7 +915,6 @@ const resourceResolver = {
           targetRegion: vals.selectedTargetRegion,
           language: vals.selectedLanguage,
         };
-        console.log({ reqParams });
 
         // Initialize the query object with the required resourceType filter
         const query: Record<string, unknown> = {
@@ -884,8 +944,6 @@ const resourceResolver = {
 
         // If no resources were found, perform a more general query
         if (resources.length === 0) {
-          console.log("No specific resources found, fetching general items...");
-
           // General query: only resourceType filter is maintained
           const generalQuery: Record<string, unknown> = {
             contentType: reqParams.resourceType, // Ensure the resourceType filter is still applied
@@ -998,8 +1056,6 @@ const resourceResolver = {
         summary.mostRequestedResource = mostRequestedResource;
         summary.mostCreatedResource = mostCreatedResource;
         summary.publicationTrends = formattedPublicationTrends;
-
-        console.log({ summary });
 
         return [summary]; // Return an array since the schema expects an array of ResourceSummary
       } catch (error) {

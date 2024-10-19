@@ -9,20 +9,30 @@ import { initializeWebSocket } from "./pollSocket";
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "@apollo/server-plugin-landing-page-graphql-playground";
 import { expressMiddleware } from "@apollo/server/express4";
-import userTypeDefs from "./graphql/userSchema";
-import paperTypeDefs from "./graphql/paperSchema";
-import resourceTypeDefs from "./graphql/resourceSchema";
-import consultationTypeDefs from "./graphql/consultationSchema";
-import vendorTypeDefs from "./graphql/vendorSchema";
+
 import voucherRoutes from "../src/routes/voucherRoutes";
 import fileRoutes from "../src/routes/fileRoutes";
 import resourceUploaders from "../src/routes/resourceUploaders";
 import { s3Deleter } from "../src/utils/awsDeleter";
+
+import userTypeDefs from "./graphql/userSchema";
+import paperTypeDefs from "./graphql/paperSchema";
+import resourceTypeDefs from "./graphql/resourceSchema";
+import paymentTypeDefs from "./graphql/paymentSchema";
+import departmentTypeDefs from "./graphql/departmentSchema";
+import DiscussionGroupTypeDefs from "./graphql/discussionGroupSchema";
+import consultationTypeDefs from "./graphql/consultationSchema";
+import vendorTypeDefs from "./graphql/vendorSchema";
+
 import userResolver from "../src/resolvers/userResolvers";
 import paperResolver from "../src/resolvers/paperResolvers";
 import consultationResolver from "../src/resolvers/consultationResolvers";
 import resourceResolver from "../src/resolvers/resourceResolvers";
 import vendorResolver from "../src/resolvers/vendorResolver";
+import paymentResolver from "../src/resolvers/paymentResolvers";
+import departmentResolver from "../src/resolvers/departmentResolvers";
+import discussionGroupResolver from "../src/resolvers/discussionGroupResolvers";
+
 import { handlePdfConversion } from "../src/utils/pdfConverter";
 import connectDB from "../src/database/connection";
 import auth from "../src/middleware/auth";
@@ -57,6 +67,9 @@ const startServer = async () => {
       resourceTypeDefs,
       vendorTypeDefs,
       consultationTypeDefs,
+      paymentTypeDefs,
+      departmentTypeDefs,
+      DiscussionGroupTypeDefs,
     ],
     resolvers: [
       userResolver,
@@ -64,6 +77,9 @@ const startServer = async () => {
       resourceResolver,
       vendorResolver,
       consultationResolver,
+      paymentResolver,
+      departmentResolver,
+      discussionGroupResolver,
     ],
     //@ts-ignore
     context: async ({ req }) => ({
