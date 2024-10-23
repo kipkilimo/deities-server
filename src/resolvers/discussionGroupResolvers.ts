@@ -93,9 +93,20 @@ const resolvers: IResolvers = {
       }
     },
     // Update an existing discussion group
+    //   updateDiscussionGroup(
+    // discussionGroupId: $discussionGroupId
+    // name: $name
+    // program: $program
+    // members: $members
+
     updateDiscussionGroup: async (
       _parent,
-      args: { discussionGroupId: string; name?: string }
+      args: {
+        discussionGroupId: string;
+        name: string;
+        program: string;
+        members: string[]; // Array of member emails
+      }
     ): Promise<IDiscussionGroup | null> => {
       const group = await DiscussionGroup.findOne({
         discussionGroupId: args.discussionGroupId,
@@ -105,11 +116,34 @@ const resolvers: IResolvers = {
         throw new Error("Discussion group not found");
       }
 
-      if (args.name) {
-        group.name = args.name; // Update the name if provided
-        await group.save();
+      if (args.name.length > 2) {
+        group.name = args.name;
+      }
+      if (args.program.length > 2) {
+        // @ts-ignore
+        group.program = args.program;
       }
 
+      const memberEmails = args.members;
+
+      console.log("memberEmails:", memberEmails);
+      // Fetch user IDs based on provided emails
+      const memberUsers = await Promise.all(
+        memberEmails.map(async (email) => {
+          const member = await User.findOne({ "personalInfo.email": email });
+          return member ? member._id : null; // Return ObjectId or null
+        })
+      );
+      const validMembers = memberUsers.filter((member) => member !== null);
+
+      // Ensure there are at least 2 valid members
+      if (validMembers.length < 2) {
+        throw new Error(
+          "At least 2 valid members are required to create a discussion group."
+        );
+      }
+      group.members = validMembers;
+      await group.save();
       return group;
     },
 

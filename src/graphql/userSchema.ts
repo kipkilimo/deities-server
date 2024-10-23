@@ -87,7 +87,7 @@ const userTypeDefs = gql`
   }
   type User {
     id: ID!
-    personalInfo: PersonalInfo!
+    personalInfo: PersonalInfo
     academicInfo: AcademicInfo
     accountSettings: AccountSettings
     activityInfo: ActivityInfo

@@ -74,31 +74,48 @@ const userResolver = {
             path: "members", // Populating the members array to get the user ObjectIds
             model: "User", // Assuming members refer to User model
             select: {
-              _id: 1, // Select the ObjectId field explicitly
-              email: 1, // Add email or any other field you might need
+              id: 1,
+              personalInfo: {
+                fullName: 1,
+                email: 1,
+              },
+              role: 1,
             },
           },
         })
         .populate({
-          path: "departments",
+          path: "departments", // Corrected the typo from "departmentss" to "departments"
           model: "Department",
           select: {
+            id: 1,
             departmentId: 1,
             name: 1,
-            parent_institution: 1,
-            phone_number: 1,
-            email_address: 1,
-            faculty: {
-              id: 1,
-            },
-            programs: {
-              id: 1,
-            },
-            students: {
-              id: 1,
-            },
+            members: 1, // Populate members field
           },
+          populate: [
+            {
+              path: "faculty", // Populating the faculty array
+              model: "User", // Assuming faculty refers to User model
+              select: {
+                id: 1,
+                "personalInfo.fullName": 1, // Select nested personalInfo fields
+                "personalInfo.email": 1,
+                role: 1,
+              },
+            },
+            {
+              path: "students", // Populating the students array
+              model: "User", // Assuming students refer to User model
+              select: {
+                id: 1,
+                "personalInfo.fullName": 1, // Select nested personalInfo fields
+                "personalInfo.email": 1,
+                role: 1,
+              },
+            },
+          ],
         })
+
         .exec();
     },
     async getCurrentUser(_: any, { sessionId }: { sessionId: string }) {
@@ -119,32 +136,50 @@ const userResolver = {
               path: "members", // Populating the members array to get the user ObjectIds
               model: "User", // Assuming members refer to User model
               select: {
-                _id: 1, // Select the ObjectId field explicitly
-                email: 1, // Add email or any other field you might need
+                id: 1,
+                personalInfo: {
+                  fullName: 1,
+                  email: 1,
+                },
+                role: 1,
               },
             },
           })
           .populate({
-            path: "departments",
+            path: "departments", // Corrected the typo from "departmentss" to "departments"
             model: "Department",
             select: {
+              id: 1,
               departmentId: 1,
               name: 1,
-              parent_institution: 1,
-              phone_number: 1,
-              email_address: 1,
-              faculty: {
-                id: 1,
-              },
-              programs: {
-                id: 1,
-              },
-              students: {
-                id: 1,
-              },
+              members: 1, // Populate members field
             },
+            populate: [
+              {
+                path: "faculty", // Populating the faculty array
+                model: "User", // Assuming faculty refers to User model
+                select: {
+                  id: 1,
+                  "personalInfo.fullName": 1, // Select nested personalInfo fields
+                  "personalInfo.email": 1,
+                  role: 1,
+                },
+              },
+              {
+                path: "students", // Populating the students array
+                model: "User", // Assuming students refer to User model
+                select: {
+                  id: 1,
+                  "personalInfo.fullName": 1, // Select nested personalInfo fields
+                  "personalInfo.email": 1,
+                  role: 1,
+                },
+              },
+            ],
           })
+
           .exec();
+
         // Check if user exists
         if (!user) {
           throw new Error("User not found");
@@ -154,7 +189,7 @@ const userResolver = {
         return user;
       } catch (error) {
         // Handle errors
-        console.error("Error fetching current user:", error || error);
+        console.error("Error fetching current user:", error);
         throw new Error(
           "An error occurred while fetching the user. Please try again."
         );
@@ -220,7 +255,7 @@ const userResolver = {
   <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->
@@ -287,7 +322,7 @@ const userResolver = {
           <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->
@@ -357,7 +392,7 @@ const userResolver = {
           <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->
@@ -426,7 +461,7 @@ const userResolver = {
         <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->
@@ -522,7 +557,7 @@ const userResolver = {
 <div style="font-family: Arial, sans-serif; color: #333;">
   <!-- Top Logo Stripe -->
   <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-    <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
+    <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
   </div>
 
   <!-- Email Content -->
@@ -572,7 +607,7 @@ const userResolver = {
         <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
     <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://media.springernature.com/lw725/springer-cms/rest/v1/content/24062430/data/v1" alt="NEMBio Learning Logo" style="width: 150px;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
     </div>
 
     <!-- Email Content -->

@@ -15,14 +15,17 @@ export interface IProgram extends Document {
   programId: string;
   name: string;
   degree: string;
-  duration: number;
+  duration: string;
   requiredCredits: number;
-  coursesOffered: ICourse[];
-  payments: mongoose.Types.ObjectId[]; // Reference to Payment documents
+  coursesOffered: string[];
+  payments: string; // Reference to Payment documents
 }
 
 // Define Department interface
 export interface IDepartment extends Document {
+  parent_institution: string;
+  phone_number: string;
+  email_address: string;
   departmentId: string;
   name: string;
   faculty: mongoose.Types.ObjectId[]; // Reference to User documents
@@ -43,11 +46,11 @@ const ProgramSchema: Schema = new Schema({
   programId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   degree: { type: String, required: true },
-  duration: { type: Number, required: true, min: 1 }, // duration in years
+  duration: { type: String, required: true },
   requiredCredits: { type: Number, required: true, min: 1 },
   students: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Reference to User model
 
-  coursesOffered: [CourseSchema], // Embedded array of courses
+  coursesOffered: [String], // Embedded array of courses
   payments: String, // Reference to Payment model
 });
 
@@ -55,8 +58,10 @@ const ProgramSchema: Schema = new Schema({
 const DepartmentSchema: Schema = new Schema({
   departmentId: { type: String, required: true, unique: true },
   name: { type: String, required: true, trim: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   faculty: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Reference to User model
-  programs: [ProgramSchema], // Embedded array of programs
+  programs: String,
+  students: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Reference to User model
   payments: String, // Reference to Payment model
   parent_institution: String,
   phone_number: String,

@@ -25,6 +25,7 @@ export const paymentTypeDefs = gql`
     publicationCreditsPaymentViaMpesa(
       userId: String!
       discussionGroupId: String!
+      paidAmount: String!
       transactionEntity: String
       paymentPhoneNumber: String
       transactionReferenceNumber: String

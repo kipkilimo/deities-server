@@ -24,23 +24,26 @@ export const departmentTypeDefs = gql`
 
   type Program {
     programId: ID!
+    id: ID!
+    createdBy: User!
     name: String!
-    degree: String!
-    duration: Int!
+    certificate: String!
+    duration: String!
     requiredCredits: Int!
-    coursesOffered: [Course!]!
-    payments: [Payment]
+    coursesOffered: [String!]!
+    payments: String!
   }
 
   type Department {
     id: ID
+    createdBy: User!
     departmentId: String
     name: String
     parent_institution: String
     phone_number: String
     email_address: String
     faculty: [User] # Using imported User type for faculty
-    programs: [Program]
+    programs: String
     students: [User] # Using imported User type for students
   }
 
@@ -50,8 +53,24 @@ export const departmentTypeDefs = gql`
   }
 
   type Mutation {
-    createDepartment(departmentId: ID!, name: String!): Department
-    updateDepartment(departmentId: ID!, name: String): Department
+    createADepartment(
+      departmentId: String
+      name: String!
+      parent_institution: String
+      phone_number: String
+      email_address: String
+      createdBy: ID!
+      members: [String!]!
+    ): Department
+    updateDepartment(
+      departmentId: String
+      name: String!
+      parent_institution: String
+      phone_number: String
+      email_address: String
+      membershipUpdate: String!
+      members: [String!]!
+    ): Department
     deleteDepartment(departmentId: ID!): Department
   }
 `;

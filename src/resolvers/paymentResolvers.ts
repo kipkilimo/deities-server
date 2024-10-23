@@ -299,6 +299,7 @@ const resolvers = {
 
             return User.findByIdAndUpdate(member.id, {
               $set: {
+                role: "FACULTY",
                 publication_credits: updatedCredits,
               },
             });
@@ -382,14 +383,14 @@ const resolvers = {
           });
         }
 
-        // Update faculty members' publication credits if transactionEntity is DEPARTMENT
+        // Update faculty faculty' publication credits if transactionEntity is DEPARTMENT
         if (args.transactionEntity === "DEPARTMENT") {
           try {
             const currentDepartment = await Department.findOne({
               departmentId: args.departmentId,
             })
               .populate({
-                path: "members",
+                path: "faculty",
                 model: "User",
                 select: {
                   id: 1,
@@ -419,7 +420,10 @@ const resolvers = {
               const updatedCredits = publicationCredits + totalPurchasedCredits;
 
               return User.findByIdAndUpdate(member.id, {
-                $set: { "personalInfo.publication_credits": updatedCredits }, // Inner field update
+                $set: {
+                  role: "FACULTY",
+                  "personalInfo.publication_credits": updatedCredits,
+                }, // Inner field update
               });
             });
 

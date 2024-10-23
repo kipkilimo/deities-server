@@ -15,10 +15,10 @@ export interface IProgram extends Document {
   programId: string;
   name: string;
   degree: string;
-  duration: number;
+  duration: string;
   requiredCredits: number;
-  coursesOffered: ICourse[];
-  payments: mongoose.Types.ObjectId[]; // Reference to Payment documents
+  coursesOffered: string[];
+  payments: string; // Reference to Payment documents
 }
 
 // Define DiscussionGroup interface

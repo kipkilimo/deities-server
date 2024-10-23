@@ -26,10 +26,10 @@ export const DiscussionGroupTypeDefs = gql`
     programId: ID!
     name: String!
     degree: String!
-    duration: Int!
+    duration: String!
     requiredCredits: Int!
-    coursesOffered: [Course!]!
-    payments: [Payment]
+    coursesOffered: [String!]!
+    payments: String
   }
 
   type DiscussionGroup {
@@ -54,9 +54,10 @@ export const DiscussionGroupTypeDefs = gql`
       members: [String!]! # List of member emails
     ): DiscussionGroup # Returns the created DiscussionGroup
     updateDiscussionGroup(
-      discussionGroupId: String! # Discussion group identifier
-      createdBy: ID! # ID of the user updating the group
-      members: [String!]! # List of member emails to update
+      discussionGroupId: String!
+      name: String
+      program: String
+      members: [String!]!
     ): DiscussionGroup # Returns the updated DiscussionGroup
     deleteDiscussionGroup(
       discussionGroupId: ID! # Unique ID for the discussion group to delete
