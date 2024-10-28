@@ -9,6 +9,9 @@ import Resource from "../models/Resource"; // Import your mongoose model
 import { promisify } from "node:util";
 import User from "../models/User";
 import Paper from "../models/Paper";
+import { splitPdfToPng } from "../utils/fileProcessing";
+
+import convert from "libreoffice-convert";
 const { exec } = require("child_process");
 const path = require("path");
 // Express route to handle file uploads and processing
@@ -52,18 +55,32 @@ const contentUpload = multer({
   },
 });
 
-async function convertPptToPdf(
-  inputFilePath: string,
-  outputFilePath: string
-): Promise<string> {
-  console.log("Starting PPT to PDF conversion...");
-  const command = `libreoffice --headless --convert-to pdf --outdir ${path.dirname(
-    outputFilePath
-  )} ${inputFilePath}`;
-  await execAsync(command);
-  console.log("PPT to PDF conversion completed.");
-  return outputFilePath;
+//
+
+export async function convertPptToPdf(inputPath: string): Promise<string> {
+  const outputPath = inputPath.replace(/\.(ppt|pptx)$/, ".pdf");
+
+  const pptBuffer = await fs.readFile(inputPath);
+  const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
+    convert.convert(pptBuffer, ".pdf", undefined, (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+
+  await fs.writeFile(outputPath, pdfBuffer);
+  return outputPath;
 }
+
+// async function convertPptToPdf(inputFilePath: string): Promise<string> {
+//   console.log("Starting PPT to PDF conversion...");
+//   const command = `libreoffice --headless --convert-to pdf --outdir ${path.dirname(
+//     inputFilePath
+//   )} ${inputFilePath}`;
+//   await execAsync(command);
+//   console.log("PPT to PDF conversion completed.");
+//   return inputFilePath;
+// }
 
 async function convertPdfToJpg(
   pdfFilePath: string,
@@ -119,7 +136,7 @@ async function processFile(
     if (fileExtension !== ".pdf") {
       console.log("File is not a PDF. Starting PPT to PDF conversion...");
       pdfFilePath = path.join(tempDir, `${uuidv4()}.pdf`);
-      await convertPptToPdf(inputFilePath, pdfFilePath);
+      await convertPptToPdf(inputFilePath);
     } else {
       console.log("File is already a PDF. Skipping conversion...");
       pdfFilePath = inputFilePath;
@@ -144,60 +161,6 @@ async function processFile(
   }
 }
 
-router.post(
-  "/slides",
-  contentUpload.single("file"),
-  async (req: Request, res: Response) => {
-    const resourceId = req.query.resourceId as string;
-
-    if (!req.file) {
-      return res.status(400).send("No file uploaded.");
-    }
-
-    const resource = await Resource.findById(resourceId).select("contentType");
-    if (!resource) {
-      return res.status(400).send("Invalid resource ID.");
-    }
-
-    if (resource.contentType !== "PRESENTATION") {
-      return res.status(400).send("Invalid resource type.");
-    }
-
-    const tempDir = path.join(__dirname, "temp");
-    const tempFilePath = path.join(
-      tempDir,
-      `${uuidv4()}-${req.file.originalname}`
-    );
-
-    try {
-      await fs.mkdir(tempDir, { recursive: true });
-      await fs.writeFile(tempFilePath, req.file.buffer);
-
-      console.log("Starting the file processing...");
-      const { imageUrls, numberOfImages } = await processFile(tempFilePath);
-
-      const updatedResource = await Resource.findByIdAndUpdate(
-        resourceId,
-        { content: JSON.stringify(imageUrls) },
-        { new: true }
-      );
-
-      if (!updatedResource) {
-        return res.status(404).send("Resource not found.");
-      }
-
-      console.log("File processing and uploads completed successfully.");
-      res.json({
-        message: "Files processed and uploaded successfully.",
-        imageUrls,
-        numberOfImages,
-      });
-    } catch (error) {
-      console.error("Error processing file:", error);
-      res.status(500).send("Error processing file.");
-    }
-  }
-);
 // Add paper participant enroll request
 router.post("/uploads/paper/participant", async (req, res) => {
   const { sessionId, userId } = req.body;
@@ -461,7 +424,95 @@ router.post("/uploads/exam/enroll", async (req, res) => {
       .json({ error: "An error occurred while processing participant data" });
   }
 });
+// save ppts
 
+router.post(
+  "/slides",
+  contentUpload.single("file"),
+  async (req: Request, res: Response) => {
+    const resourceId = req.query.resourceId as string;
+
+    if (!req.file) {
+      return res.status(400).send("No file uploaded.");
+    }
+
+    const resource = await Resource.findById(resourceId).select("contentType");
+    if (!resource) {
+      return res.status(400).send("Invalid resource ID.");
+    }
+
+    if (resource.contentType !== "PRESENTATION") {
+      return res.status(400).send("Invalid resource type.");
+    }
+
+    const tempDir = path.join(__dirname, "temp");
+    const tempFilePath = path.join(
+      tempDir,
+      `${uuidv4()}-${req.file.originalname}`
+    );
+    const fileType = path.extname(req.file.originalname).toLowerCase();
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(tempFilePath, req.file.buffer);
+
+      console.log("Starting file conversion and processing...");
+
+      // Convert to PDF if file is PPT or PPTX
+      let pdfFilePath = tempFilePath;
+      if (fileType === ".ppt" || fileType === ".pptx") {
+        pdfFilePath = await convertPptToPdf(tempFilePath);
+      }
+
+      // Split PDF to PNG images
+      const imagePaths = await splitPdfToPng(pdfFilePath);
+
+      // Upload each PNG image to S3
+      const uploadPromises = imagePaths.map(async (file) => {
+        const fileName = `${uuidv4()}-${path.basename(file)}`;
+        const fileBuffer = await fs.readFile(file);
+
+        const uploadParams = {
+          Bucket: process.env.AWS_BUCKET_NAME as string,
+          Key: fileName,
+          Body: fileBuffer,
+          ContentType: "image/png",
+        };
+
+        const command = new PutObjectCommand(uploadParams);
+        await s3Client.send(command);
+
+        return `https://${uploadParams.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+      });
+
+      const s3URLs = await Promise.all(uploadPromises);
+
+      // Update resource with image URLs
+      const updatedResource = await Resource.findByIdAndUpdate(
+        resourceId,
+        { content: JSON.stringify(s3URLs) },
+        { new: true }
+      );
+
+      if (!updatedResource) {
+        return res.status(404).send("Resource not found.");
+      }
+
+      console.log("File processing and uploads completed successfully.");
+      res.json({
+        message: "Files processed and uploaded successfully.",
+        imageUrls: s3URLs,
+        numberOfImages: s3URLs.length,
+      });
+    } catch (error) {
+      console.error("Error processing file:", error);
+      res.status(500).send("Error processing file.");
+    } finally {
+      // Clean up temporary files
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  }
+);
 // Handle POST request to /resources/uploads/assignment/enroll
 router.post(
   "/uploads/assignment/enroll",

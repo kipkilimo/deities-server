@@ -5,10 +5,11 @@ import QRCode from "qrcode";
 import dotenv from "dotenv";
 import { sendEmail, EmailOptions } from "../utils/emailHandler"; // Adjust the path as needed
 import Vendor from "../models/Vendor"; // Import your mongoose model
+import cors from "cors";
 
 dotenv.config();
 
-const ngrokURL = process.env.VITE_NGROK_URL;
+const ngrokURL = "https://nem.bio"; // process.env.VITE_NGROK_URL;
 const generateToken = (): string => {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
@@ -50,7 +51,7 @@ const generateVoucherHTML = async (token: string): Promise<string> => {
           padding: 0;
           font-family: Arial, sans-serif;
           /* Repeating background applied to the entire page */
-          background-image: url('https://i.pinimg.com/originals/ec/44/37/ec4437dff1c7084d424c36e297a03a91.png');
+          background-image: url('https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png');
           background-repeat: repeat;
           background-size: 20px 20px; 
         }
@@ -96,7 +97,7 @@ const generateVoucherHTML = async (token: string): Promise<string> => {
           padding: 0;
           font-family: Arial, sans-serif;
           /* Repeating background applied to the entire page */
-          background-image: url('https://i.pinimg.com/originals/ec/44/37/ec4437dff1c7084d424c36e297a03a91.png');
+          background-image: url('https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png');
           background-repeat: repeat;
           background-size: 20px 20px; ">
       <div class="voucher">
@@ -186,8 +187,6 @@ const voucherSchema = new mongoose.Schema<IVoucher>({
 });
 
 const Voucher = mongoose.model<IVoucher>("Voucher", voucherSchema);
-
-const cors = require("cors"); // Import the cors package
 
 const router = express.Router();
 

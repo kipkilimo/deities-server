@@ -48,13 +48,13 @@ app.use((req, res, next) => {
 });
 app.options("*", cors());
 const corsOptions = {
-    origin: "https://cloudclinic.tech:3001/graphql",
+    origin: "https://nem.bio:4000/graphql",
     credentials: true,
     optionSuccessStatus: 200,
 };
 
 const corsOptions2 = {
-    origin: "https://cloudclinic.tech:3001",
+    origin: "https://nem.bio:4000",
     credentials: true,
     optionSuccessStatus: 200,
 };
@@ -85,7 +85,7 @@ app.use("/graphql", function (req, res, next) {
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const port = 3001;
+const port = 4000;
 // npm i express cors express-graphql graphql@14 express-graphql @graphql-tools/schema
 // In-memory data store
 
@@ -123,7 +123,7 @@ app.use(
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
     res.header("Access-Control-Allow-Headers", "Content-Type");
-    res.header("Access-Control-Allow-Origin", "https://cloudclinic.tech:3000");
+    res.header("Access-Control-Allow-Origin", "https://nem.bio:3000");
     res.header("Access-Control-Allow-Origin", "http://192.168.1.64:3000");
 
     res.header("Access-Control-Allow-Origin", "http://192.168.1.66:3000");
@@ -133,7 +133,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
     res.header("Access-Control-Allow-Headers", "Content-Type");
-    res.header("Access-Control-Allow-Origin", "cloudclinic.tech");
+    res.header("Access-Control-Allow-Origin", "nem.bio");
     next();
 });
 
@@ -201,9 +201,9 @@ io.on("connection", (socket) => {
 
 // online
 /*
-rm -r root@209.38.200.25:/cloudclinic.tech/server 
+rm -r root@209.38.200.25:/nem.bio/server 
 
-scp -r ~/Desktop/xxx/cloudclinic.tech/server/ root@209.38.200.25:/cloudclinic.tech/
+scp -r ~/Desktop/xxx/nem.bio/server/ root@209.38.200.25:/nem.bio/
 
 sudo apt-get remove nginx &&
 sudo apt-get purge nginx &&
@@ -211,11 +211,11 @@ sudo apt-get autoremove
 
 
 const privateKey = fs.readFileSync(
-  "/etc/letsencrypt/live/cloudclinic.tech/privkey.pem",
+  "/etc/letsencrypt/live/nem.bio/privkey.pem",
   "utf8"
 );
 const certificate = fs.readFileSync(
-  "/etc/letsencrypt/live/cloudclinic.tech/fullchain.pem",
+  "/etc/letsencrypt/live/nem.bio/fullchain.pem",
   "utf8"
 );
 
@@ -234,3 +234,146 @@ httpServer.listen(port, () => {
 
 
 
+
+
+
+
+
+require("dotenv").config();
+const { PubSub } = require("graphql-subscriptions");
+const express = require("express");
+const cors = require("cors");
+const { createServer } = require("http");
+const { createServer: createHttpsServer } = require("https");
+const fs = require("fs");
+const { initializeWebSocket } = require("./pollSocket");
+const { ApolloServer } = require("@apollo/server");
+const { ApolloServerPluginLandingPageGraphQLPlayground } = require("@apollo/server-plugin-landing-page-graphql-playground");
+const { expressMiddleware } = require("@apollo/server/express4");
+const voucherRoutes = require("../src/routes/voucherRoutes");
+const fileRoutes = require("../src/routes/fileRoutes");
+const resourceUploaders = require("../src/routes/resourceUploaders");
+const { s3Deleter } = require("../src/utils/awsDeleter");
+
+const userTypeDefs = require("./graphql/userSchema");
+const paperTypeDefs = require("./graphql/paperSchema");
+const resourceTypeDefs = require("./graphql/resourceSchema");
+const paymentTypeDefs = require("./graphql/paymentSchema");
+const departmentTypeDefs = require("./graphql/departmentSchema");
+const discussionGroupTypeDefs = require("./graphql/discussionGroupSchema");
+const consultationTypeDefs = require("./graphql/consultationSchema");
+const vendorTypeDefs = require("./graphql/vendorSchema");
+
+const userResolver = require("../src/resolvers/userResolvers");
+const paperResolver = require("../src/resolvers/paperResolvers");
+const consultationResolver = require("../src/resolvers/consultationResolvers");
+const resourceResolver = require("../src/resolvers/resourceResolvers");
+const vendorResolver = require("../src/resolvers/vendorResolver");
+const paymentResolver = require("../src/resolvers/paymentResolvers");
+const departmentResolver = require("../src/resolvers/departmentResolvers");
+const discussionGroupResolver = require("../src/resolvers/discussionGroupResolvers");
+
+const { handlePdfConversion } = require("../src/utils/pdfConverter");
+const connectDB = require("../src/database/connection");
+const auth = require("../src/middleware/auth");
+
+const startServer = async () => {
+    const app = express();
+    const pubsub = new PubSub();
+
+    // CORS configuration
+    app.use(
+        cors({
+            origin: process.env.CORS_ORIGIN || "*",
+            methods: ["GET", "POST"],
+        })
+    );
+
+    app.use(express.json());
+    app.use(auth);
+
+    // Create Apollo Server
+    const apolloServer = new ApolloServer({
+        typeDefs: [
+            userTypeDefs,
+            paperTypeDefs,
+            resourceTypeDefs,
+            vendorTypeDefs,
+            consultationTypeDefs,
+            paymentTypeDefs,
+            departmentTypeDefs,
+            discussionGroupTypeDefs,
+        ],
+        resolvers: [
+            userResolver,
+            paperResolver,
+            resourceResolver,
+            vendorResolver,
+            consultationResolver,
+            paymentResolver,
+            departmentResolver,
+            discussionGroupResolver,
+        ],
+        csrfPrevention: true,
+        introspection: true,
+        context: async ({ req }) => ({ req, pubsub }),
+        plugins: [ApolloServerPluginLandingPageGraphQLPlayground({})],
+    });
+
+    await apolloServer.start();
+
+    // Use middleware
+    app.use(
+        "/graphql",
+        expressMiddleware(apolloServer, {
+            context: async ({ req }) => ({ req, pubsub }),
+        })
+    );
+
+    // Connect to the database
+    connectDB();
+
+    // Route configurations
+    app.post("/delete-files", s3Deleter);
+    app.use("/api", fileRoutes);
+    app.use("/vendors", voucherRoutes);
+    app.use("/resources", resourceUploaders);
+
+    // Uncomment if PDF conversion is enabled
+    // app.post("/convert-pdf", handlePdfConversion);
+
+    // Load SSL certificate and key for HTTPS in production
+    let httpServer;
+
+    if (process.env.NODE_ENV === "production") {
+        const privateKey = fs.readFileSync("/path/to/ssl/privatekey.pem", "utf8");
+        const certificate = fs.readFileSync("/path/to/ssl/certificate.pem", "utf8");
+        const ca = fs.readFileSync("/path/to/ssl/chain.pem", "utf8");
+
+        const credentials = { key: privateKey, cert: certificate, ca };
+
+        // Create HTTPS server for production
+        httpServer = createHttpsServer(credentials, app);
+        console.log("HTTPS server created with SSL certificates");
+    } else {
+        // Create HTTP server for development
+        httpServer = createServer(app);
+        console.log("HTTP server created (development mode)");
+    }
+
+    // Initialize the WebSocket server
+    initializeWebSocket(httpServer);
+
+    // Start the server
+    const port = process.env.PORT || 4000;
+    httpServer.listen(port, () => {
+        console.log(
+            `Server ready at http${process.env.NODE_ENV === "production" ? "s" : ""
+            }://localhost:${port}/graphql`
+        );
+    });
+};
+
+startServer().catch((error) => {
+    console.error("Failed to start server:", error);
+});

@@ -3,17 +3,17 @@ dotenv.config();
 import { PubSub } from "graphql-subscriptions";
 import express from "express";
 import cors from "cors";
-import { createServer } from "http"; // Import HTTP module
-import { createServer as createHttpsServer } from "https"; // Import HTTPS module for production
-import fs from "fs"; // Required for SSL certificate loading
-import helmet from "helmet"; // For security headers
-import rateLimit from "express-rate-limit"; // For rate limiting
-import { initializeWebSocket } from "./pollSocket";
 
+import bodyParser from "body-parser";
+// import cors from "cors";
+
+import { createServer } from "http";
+import { createServer as createHttpsServer } from "https";
+import fs from "fs";
+import { initializeWebSocket } from "./pollSocket";
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "@apollo/server-plugin-landing-page-graphql-playground";
 import { expressMiddleware } from "@apollo/server/express4";
-
 import voucherRoutes from "../src/routes/voucherRoutes";
 import fileRoutes from "../src/routes/fileRoutes";
 import resourceUploaders from "../src/routes/resourceUploaders";
@@ -24,9 +24,10 @@ import paperTypeDefs from "./graphql/paperSchema";
 import resourceTypeDefs from "./graphql/resourceSchema";
 import paymentTypeDefs from "./graphql/paymentSchema";
 import departmentTypeDefs from "./graphql/departmentSchema";
-import DiscussionGroupTypeDefs from "./graphql/discussionGroupSchema";
+import discussionGroupTypeDefs from "./graphql/discussionGroupSchema";
 import consultationTypeDefs from "./graphql/consultationSchema";
 import vendorTypeDefs from "./graphql/vendorSchema";
+import path from "path";
 
 import userResolver from "../src/resolvers/userResolvers";
 import paperResolver from "../src/resolvers/paperResolvers";
@@ -44,38 +45,25 @@ import auth from "../src/middleware/auth";
 // Define the context interface
 interface Context {
   pubsub: PubSub;
-  // Add other context properties if needed
+  req: express.Request;
 }
 
 const startServer = async () => {
   const app = express();
   const pubsub = new PubSub();
 
-  // Configure security settings
-  app.use(helmet()); // Security headers middleware
-
-  // Apply rate limiting to all requests
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window` (15 minutes)
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  });
-  app.use(limiter);
-
-  // Configure CORS with specific origins in production
+  // CORS configuration
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN || "*", // Set your allowed origins
+      origin: process.env.CORS_ORIGIN || "*",
       methods: ["GET", "POST"],
-      allowedHeaders: ["Content-Type", "Authorization"],
     })
   );
 
-  app.use(express.json()); // Use express.json() middleware
-
+  app.use(express.json());
   app.use(auth);
 
+  // Create Apollo Server with typed context
   const apolloServer = new ApolloServer<Context>({
     typeDefs: [
       userTypeDefs,
@@ -85,7 +73,7 @@ const startServer = async () => {
       consultationTypeDefs,
       paymentTypeDefs,
       departmentTypeDefs,
-      DiscussionGroupTypeDefs,
+      discussionGroupTypeDefs,
     ],
     resolvers: [
       userResolver,
@@ -97,29 +85,44 @@ const startServer = async () => {
       departmentResolver,
       discussionGroupResolver,
     ],
-    //@ts-ignore
-    context: async ({ req }) => ({
-      pubsub,
-    }),
     csrfPrevention: true,
     introspection: true,
+    // @ts-ignore
+    context: async ({ req }): Promise<Context> => ({ req, pubsub }),
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground({})],
   });
 
   await apolloServer.start();
 
-  // Attach Apollo Server as middleware
+  // Use middleware with typed context
   app.use(
     "/graphql",
     expressMiddleware(apolloServer, {
-      context: async ({ req }) => ({
-        pubsub,
-      }),
+      context: async ({ req }) => ({ req, pubsub }),
     })
   );
 
+  // Connect to the database
   connectDB();
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    res.header("Access-Control-Allow-Origin", "https://nem.bio:4000");
+    res.header(
+      "Access-Control-Allow-Origin",
+      "http://http://192.168.1.74:4000"
+    );
 
+    res.header("Access-Control-Allow-Origin", "http://192.168.0.105:5173:4000");
+    next();
+  });
+
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    res.header("Access-Control-Allow-Origin", "cloudclinic.tech");
+    next();
+  });
   // Route configurations
   app.post("/delete-files", s3Deleter);
   app.use("/api", fileRoutes);
@@ -128,16 +131,77 @@ const startServer = async () => {
 
   // Uncomment if PDF conversion is enabled
   // app.post("/convert-pdf", handlePdfConversion);
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    next();
+  });
+  app.options("*", cors());
+  const corsOptions = {
+    origin: "https:/nem.bio:4000/graphql",
+    credentials: true,
+    optionSuccessStatus: 200,
+  };
 
-  // Load SSL certificate and key for HTTPS (production only)
+  const corsOptions2 = {
+    origin: "https:/nem.bio:4000",
+    credentials: true,
+    optionSuccessStatus: 200,
+  };
+
+  cors({
+    origin: "*",
+    credentials: true,
+  }),
+    app.use(cors(corsOptions));
+  app.use(cors(corsOptions2));
+
+  app.use(
+    bodyParser.urlencoded({
+      extended: true,
+    })
+  );
+  app.use("/graphql", function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, Content-Length, X-Requested-With"
+    );
+    if (req.method === "OPTIONS") {
+      res.sendStatus(200);
+    } else {
+      next();
+    }
+  });
+
+  // Load SSL certificate and key for HTTPS in production
   let httpServer;
 
   if (process.env.NODE_ENV === "production") {
-    const privateKey = fs.readFileSync("/path/to/ssl/privatekey.pem", "utf8");
-    const certificate = fs.readFileSync("/path/to/ssl/certificate.pem", "utf8");
-    const ca = fs.readFileSync("/path/to/ssl/chain.pem", "utf8");
+    const privateKey = fs.readFileSync(
+      "/etc/letsencrypt/live/nem.bio/privkey.pem",
+      "utf8"
+    );
+    const certificate = fs.readFileSync(
+      "/etc/letsencrypt/live/nem.bio/fullchain.pem",
+      "utf8"
+    );
 
-    const credentials = { key: privateKey, cert: certificate, ca };
+    const credentials = { key: privateKey, cert: certificate };
+
+    // const privateKey = fs.readFileSync(
+    //   path.join(__dirname, "ssl", "privatekey.pem"),
+    //   "utf8"
+    // );
+    // const certificate = fs.readFileSync(
+    //   path.join(__dirname, "ssl", "certificate.pem"),
+    //   "utf8"
+    // );
+    // const ca = fs.readFileSync(
+    //   path.join(__dirname, "ssl", "chain.pem"),
+    //   "utf8"
+    // );
+
+    // const credentials = { key: privateKey, cert: certificate, ca };
 
     // Create HTTPS server for production
     httpServer = createHttpsServer(credentials, app);
@@ -152,13 +216,16 @@ const startServer = async () => {
   initializeWebSocket(httpServer);
 
   // Start the server
-  httpServer.listen(process.env.PORT, () => {
+  const port = process.env.PORT || 4000;
+  httpServer.listen(port, () => {
     console.log(
       `Server ready at http${
         process.env.NODE_ENV === "production" ? "s" : ""
-      }://localhost:${process.env.PORT}/graphql`
+      }://localhost:${port}/graphql`
     );
   });
 };
 
-startServer();
+startServer().catch((error) => {
+  console.error("Failed to start server:", error);
+});
