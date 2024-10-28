@@ -168,7 +168,6 @@ const resolvers = {
         throw new Error(`Failed to waive access fee: ${error}`);
       }
     },
-
     // Resolver for making an MPESA payment
     publicationCreditsPaymentViaMpesa: async (
       _: unknown,
@@ -190,25 +189,23 @@ const resolvers = {
           paidAmount: args.paidAmount,
           paymentPhoneNumber: args.paymentPhoneNumber,
         });
+
         const activatingUser = await User.findById(args.userId);
-        if (!activatingUser) {
+        if (!activatingUser)
           throw new Error("No teacher matching provided details");
-        }
 
         const publisherName = `${activatingUser.personalInfo.fullName}`;
         const paymentAccount = `${publisherName} NEMBio Publication Credits`;
         const paidAmount = Number(args.paidAmount);
-        const paymentNumber = args.paymentPhoneNumber;
-        const dollarRate = Number(process.env.DOLLAR_RATE) || 1; // Fallback to 1 if undefined
-
-        const usdValue = paidAmount * dollarRate;
+        const dollarRate = Number(process.env.DOLLAR_RATE) || 1;
+        const usdValue = paidAmount / dollarRate;
         const totalPurchasedCredits = calculateCredits(usdValue);
 
-        // MPESA action START
+        // MPESA initialization
         const mpesaApi = new Mpesa({
           consumerKey: process.env.MPESA_CONSUMER_KEY!,
           consumerSecret: process.env.MPESA_CONSUMER_SECRET!,
-          //@ts-ignore
+          // @ts-ignore
           environment: "production",
           shortCode: "4073131",
           initiatorName: "County Square",
@@ -217,15 +214,19 @@ const resolvers = {
           securityCredential: process.env.MPESA_SECURITY_CREDENTIAL!,
         });
 
+        // Payment initiation
         const paymentObjectBody = await mpesaApi.lipaNaMpesaOnline(
-          paymentNumber,
+          args.paymentPhoneNumber,
           paidAmount,
-          "https://countysquare.co.ke/success",
+          "https://nem.bio/success",
           paymentAccount
         );
 
+        const delay = (ms: number) =>
+          new Promise((resolve) => setTimeout(resolve, ms));
+
         const delayedLogic = async (): Promise<Payment> => {
-          await new Promise((resolve) => setTimeout(resolve, 18000)); // Wait for 18 seconds
+          await delay(18000);
           const paymentResponse = await mpesaApi.lipaNaMpesaQuery(
             paymentObjectBody.data.CheckoutRequestID
           );
@@ -234,15 +235,14 @@ const resolvers = {
             throw new Error("Payment did not complete successfully.");
           }
 
-          const receiptNumber = generateUniqueCode(12).toUpperCase();
           const newPayment = new Payment({
             userId: args.userId,
-            paidAmount: paidAmount,
+            paidAmount,
             departmentId: args.departmentId,
             discussionGroupId: args.discussionGroupId,
             transactionEntity: args.transactionEntity,
             paymentPhoneNumber: args.paymentPhoneNumber,
-            transactionReferenceNumber: receiptNumber,
+            transactionReferenceNumber: generateUniqueCode(12).toUpperCase(),
             paymentMethod: "MPESA",
             createdAt: DateTime.now().toISO(),
           });
@@ -252,72 +252,64 @@ const resolvers = {
 
         const result = await delayedLogic();
 
-        // Update user's publication_credits_added
+        // Update user's publication credits
         if (args.transactionEntity === "INDIVIDUAL") {
-          const publication_credits_added =
-            Number(activatingUser.personalInfo.publication_credits) +
-            totalPurchasedCredits;
+          // Fetch user to get current credits
+          const user = await User.findById(args.userId);
+          if (!user) throw new Error("User not found");
 
-          await User.findByIdAndUpdate(activatingUser.id, {
-            $set: {
-              publication_credits: publication_credits_added,
-            },
+          const currentCredits = Number(
+            user.personalInfo.publication_credits || "0"
+          );
+          const updatedCredits = (
+            currentCredits + totalPurchasedCredits
+          ).toString();
+
+          await User.findByIdAndUpdate(args.userId, {
+            $set: { "personalInfo.publication_credits": updatedCredits },
           });
-        }
-        if (args.transactionEntity === "DEPARTMENT") {
-          const currentDepartment = await Department.findOne({
+        } else if (args.transactionEntity === "DEPARTMENT") {
+          // Fetch department and populate faculty
+          const department = await Department.findOne({
             departmentId: args.departmentId,
           })
             .populate({
               path: "faculty",
               model: "User",
-              select: {
-                id: 1,
-                personalInfo: {
-                  username: 1,
-                  fullName: 1,
-                  email: 1,
-                  scholarId: 1,
-                  activationToken: 1,
-                  publication_credits: 1,
-                  resetToken: 1,
-                  tokenExpiry: 1,
-                  activatedAccount: 1,
-                },
-                role: 1,
-              },
+              select: "id personalInfo.publication_credits",
             })
             .exec();
 
-          const facultyMembers = currentDepartment?.faculty || [];
+          if (department && department.faculty) {
+            const updatePromises = department.faculty.map(async (member) => {
+              const currentCredits = Number(
+                // @ts-ignore
+                member.personalInfo.publication_credits || "0"
+              );
+              const updatedCredits = (
+                currentCredits + totalPurchasedCredits
+              ).toString();
 
-          const updatePromises = facultyMembers.map(async (member) => {
-            const publicationCredits =
-              // @ts-ignore
-              Number(member.personalInfo.publication_credits);
-            const updatedCredits = publicationCredits + totalPurchasedCredits;
-
-            return User.findByIdAndUpdate(member.id, {
-              $set: {
-                role: "FACULTY",
-                publication_credits: updatedCredits,
-              },
+              return User.findByIdAndUpdate(member.id, {
+                $set: { "personalInfo.publication_credits": updatedCredits },
+              });
             });
-          });
 
-          try {
-            await Promise.all(updatePromises);
-          } catch (error) {
-            console.error(
-              "Error updating faculty members' publication credits:",
-              error
-            );
-            // Handle error as needed (e.g., throw new Error or log)
+            await Promise.all(updatePromises).catch((error) => {
+              console.error(
+                "Error updating faculty publication credits:",
+                error
+              );
+              throw new Error(
+                "Failed to update all faculty publication credits"
+              );
+            });
           }
         }
 
         return result;
       } catch (error) {
+        console.error(`Error in publicationCreditsPaymentViaMpesa: ${error}`);
         throw new Error(
           `Payment process did not complete successfully: ${error}`
         );

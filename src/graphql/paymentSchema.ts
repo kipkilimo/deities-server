@@ -24,7 +24,8 @@ export const paymentTypeDefs = gql`
     # Mutation for making access payment via MPESA
     publicationCreditsPaymentViaMpesa(
       userId: String!
-      discussionGroupId: String!
+      departmentId: String
+      discussionGroupId: String
       paidAmount: String!
       transactionEntity: String
       paymentPhoneNumber: String
