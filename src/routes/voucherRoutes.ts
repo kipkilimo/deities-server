@@ -157,7 +157,7 @@ export const sendVouchersToEmails = async (emailList: string[]) => {
     const pdfBuffer = await generatePdfBuffer(voucherHTML);
 
     const emailOptions: EmailOptions = {
-      to: email,
+      to: [email],
       subject: "Your NEMBio Voucher",
       html: "<h3>Please find your exclusive NEMBio voucher attached.</h3>",
       attachments: [

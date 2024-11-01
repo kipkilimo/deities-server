@@ -4,6 +4,7 @@ import User from "../models/User";
 
 import { generateUniqueCode } from "../utils/identifier_generator";
 import generateAccessKey from "../utils/accessKeyUtility";
+import { isBefore } from "date-fns";
 
 import { publicationCreditCharges } from "../utils/publicationCredits";
 const cron = require("node-cron");
@@ -531,7 +532,10 @@ const resourceResolver = {
         throw new Error("Failed to fetch latest tasks");
       }
     },
-    async getCurrentExam(_: any, { sessionId }: { sessionId: string }) {
+    async getCurrentExam(
+      _: any,
+      { sessionId, examType }: { sessionId: string; examType: string }
+    ) {
       // Step 1: Fetch the latest 12 exams created by the user with contentType = "TEST"
       let exams = await Resource.find({
         sessionId,
@@ -644,11 +648,101 @@ const resourceResolver = {
       });
 
       const currentExam2 = exams2[0];
-
+      if (examType === "MOCK") {
+        return currentExam2;
+      }
       // Return the current exam based on time check
       return isCurrentTimeInRange ? currentExam2 : null;
     },
+    async getAllMockExams(
+      _: unknown,
+      { resourceType }: { resourceType: string }
+    ): Promise<InstanceType<typeof Resource>[]> {
+      try {
+        const valsRaw = JSON.parse(resourceType);
+        const vals = valsRaw[0];
 
+        const reqParams = {
+          resourceType: vals.resourceType,
+          subject: vals.selectedSubject,
+          topic: vals.selectedTopic,
+          country: vals.selectedCountry,
+          targetRegion: vals.selectedTargetRegion,
+          language: vals.selectedLanguage,
+        };
+
+        // Initialize the query object with the required resourceType filter
+        const query: Record<string, unknown> = {
+          contentType: reqParams.resourceType,
+        };
+
+        // Conditionally add optional filters if they are provided
+        if (reqParams.subject) {
+          query.subject = reqParams.subject;
+        }
+        if (reqParams.topic) {
+          query.topic = reqParams.topic;
+        }
+        if (reqParams.country) {
+          // Use regex for partial and case-insensitive match
+          query.country = { $regex: new RegExp(reqParams.country, "i") };
+        }
+        if (reqParams.targetRegion) {
+          query.targetRegion = reqParams.targetRegion;
+        }
+        if (reqParams.language) {
+          query.language = reqParams.language;
+        }
+
+        // Fetch the resources from the database based on the dynamically built query
+        let exams = await Resource.find(query).populate({
+          path: "createdBy",
+          model: "User",
+          select: {
+            id: 1,
+            personalInfo: {
+              username: 1,
+              fullName: 1,
+              email: 1,
+              scholarId: 1,
+              activationToken: 1,
+              resetToken: 1,
+              tokenExpiry: 1,
+              activatedAccount: 1,
+            },
+            role: 1,
+          },
+        });
+        exams = exams
+          .map((exam) => {
+            const parsedContent = JSON.parse(exam.content); // Parse the stringified content
+            if (parsedContent && parsedContent.examMetaInfo) {
+              // @ts-ignore
+              exam.examMetaInfo = JSON.parse(parsedContent.examMetaInfo); // Extract and parse examMetaInfo
+
+              // Check if the exam date has already passed
+              // @ts-ignore
+              const examDate = new Date(exam.examMetaInfo.examDate);
+              const now = new Date();
+
+              // Return only if the exam date is in the past
+              // @ts-ignore
+              if (isBefore(examDate, now)) {
+                return exam;
+              }
+            }
+            return null; // Filter out exams with future dates or missing examMetaInfo
+          })
+          .filter((exam) => exam !== null); // Remove null entries
+
+        // Return the latest exams or null if none found
+        console.log({ exams });
+        return exams;
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+        throw new Error("Failed to fetch resources");
+      }
+    },
     async getPublisherLatestExams(_: any, { userId }: { userId: string }) {
       // Step 1: Fetch the latest 12 exams created by the user with contentType = "TEST"
       let exams = await Resource.find({
@@ -1094,4 +1188,5 @@ const resourceResolver = {
   },
 };
 
-export default resourceResolver;
+export default resourceResolver; 
+

@@ -265,17 +265,17 @@ const userResolver = {
       const emailBody = `
   <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
+    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
     <!-- Email Content -->
     <div style="padding: 20px;">
-      <h1 style="color: #0b3d91;">Welcome to NEMBio Learning, ${user.personalInfo.fullName}!</h1>
+      <h1 style="color: #ffffff;">Welcome to NEMBio Learning, ${user.personalInfo.fullName}!</h1>
       <p style="font-size: 16px;">Thank you for signing up. To activate your account and access the platform, please click on the link below:</p>
       <p style="text-align: center; margin: 20px 0;">
         <a href="${redirectUrl}/auth/activate?token=${user.personalInfo.activationToken}" 
-           style="background-color: #0b3d91; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+           style="background-color: #ffffff; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
            Activate Your Account
         </a>
       </p>
@@ -286,7 +286,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
+      <p>The Hub for Learning Epidemiology, Biostatistics and Research Methods.</p>
              <p>Nairobi, KE</p>
       <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
@@ -294,7 +294,7 @@ const userResolver = {
 `;
 
       const emailOptions = {
-        to: user.personalInfo.email,
+        to: [user.personalInfo.email],
         subject: "Activate Your Account on  NEMBio Learning",
         html: emailBody,
       };
@@ -323,17 +323,14 @@ const userResolver = {
         throw new Error("User not found");
       }
 
-      if (
-        user.personalInfo.activationToken.length > 1 &&
-        Date.now() - Number(user.personalInfo.tokenExpiry) > 7200000
-      ) {
+      if (user.personalInfo.activatedAccount === false) {
         const activationToken = generateUniqueCode(12);
 
         const emailBody = `
           <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
+    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
     <!-- Email Content -->
@@ -344,7 +341,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
+      <p>The Hub for Learning Epidemiology, Biostatistics and Research Methods.</p>
              <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
@@ -355,7 +352,7 @@ const userResolver = {
         `;
 
         const emailOptions = {
-          to: user.personalInfo.email,
+          to: [user.personalInfo.email],
           subject: "Activate Your Account on  NEMBio Learning",
           html: emailBody,
         };
@@ -393,17 +390,14 @@ const userResolver = {
         throw new Error("User not found");
       }
 
-      if (
-        user.personalInfo.activationToken.length > 1 &&
-        Date.now() - Number(user.personalInfo.tokenExpiry) > 7200000
-      ) {
+      if (user.personalInfo.activatedAccount === false) {
         const activationToken = generateUniqueCode(12);
 
         const emailBody = `
           <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
+    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
     <!-- Email Content -->
@@ -414,7 +408,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
+      <p>The Hub for Learning Epidemiology, Biostatistics and Research Methods.</p>
              <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
@@ -425,7 +419,7 @@ const userResolver = {
         `;
 
         const emailOptions = {
-          to: user.personalInfo.email,
+          to: [user.personalInfo.email],
           subject: "Activate Your Account on  NEMBio Learning",
           html: emailBody,
         };
@@ -465,14 +459,14 @@ const userResolver = {
         throw new Error("Invalid activation token");
       }
 
-      if (Date.now() - Number(user.personalInfo.tokenExpiry) > 7200000) {
+      if (user.personalInfo.activatedAccount === false) {
         const newActivationToken = generateUniqueCode(12);
 
         const emailBody = `
         <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
+    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
     <!-- Email Content -->
@@ -483,7 +477,7 @@ const userResolver = {
 
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
+      <p>The Hub for Learning Epidemiology, Biostatistics and Research Methods.</p>
              <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
@@ -494,7 +488,7 @@ const userResolver = {
         `;
 
         const emailOptions = {
-          to: user.personalInfo.email,
+          to: [user.personalInfo.email],
           subject: "Activate Your Account on  NEMBio Learning",
           html: emailBody,
         };
@@ -531,10 +525,7 @@ const userResolver = {
         "personalInfo.activationToken": activationToken,
       });
 
-      if (
-        !user ||
-        Date.now() - Number(user.personalInfo.tokenExpiry) > 7200000
-      ) {
+      if (!user || user.personalInfo.activatedAccount === false) {
         throw new Error("Invalid or expired activation token");
       }
       if (password.length < 6 || password.length > 12) {
@@ -567,8 +558,8 @@ const userResolver = {
       const emailBody = `
 <div style="font-family: Arial, sans-serif; color: #333;">
   <!-- Top Logo Stripe -->
-  <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-    <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
+  <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+    <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
   </div>
 
   <!-- Email Content -->
@@ -584,14 +575,14 @@ const userResolver = {
 
   <!-- Footer with Address -->
   <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-    <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
+    <p>The Hub for Learning Epidemiology, Biostatistics and Research Methods.</p>
          <p>Nairobi, KE</p>
     <p>Tel: 254700378241 Email: info@nem.bio</p>
   </div>
 </div>
 `;
       const emailOptions = {
-        to: user.personalInfo.email,
+        to: [user.personalInfo.email],
         subject: "One time signin pin on NEMBio Learning",
         html: emailBody,
       };
@@ -617,8 +608,8 @@ const userResolver = {
       const emailBody = `
         <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #0b3d91; padding: 20px; text-align: center;">
-      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 150px;">
+    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+      <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
     <!-- Email Content -->
@@ -629,7 +620,7 @@ const userResolver = {
         <p>Once reset, you can log in to your account and start using  NEMBio Learning again.</p>
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
-      <p>The Hub for Interactive Life Sciences Learning and Research Tools.</p>
+      <p>The Hub for Learning Epidemiology, Biostatistics and Research Methods.</p>
              <p>Nairobi, KE</p>
             <p>Tel: 254700378241 Email: info@nem.bio</p>
     </div>
@@ -639,7 +630,7 @@ const userResolver = {
       `;
 
       const emailOptions = {
-        to: user.personalInfo.email,
+        to: [user.personalInfo.email],
         subject: "Password Reset Request on  NEMBio Learning",
         html: emailBody,
       };

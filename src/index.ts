@@ -51,7 +51,8 @@ interface Context {
 const startServer = async () => {
   const app = express();
   const pubsub = new PubSub();
-
+  // Connect to the database
+  connectDB();
   // CORS configuration
   app.use(
     cors({
@@ -101,60 +102,27 @@ const startServer = async () => {
       context: async ({ req }) => ({ req, pubsub }),
     })
   );
+  // Consolidate all CORS options into one configuration object
+  const corsOptions = {
+    origin: [
+      "https://nem.bio", // Main origin
+      "http://192.168.1.74:4000", // Specific IPs (if required)
+      "http://192.168.0.105:5173",
+    ],
+    methods: ["GET", "PUT", "POST", "DELETE"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true, // Enable if cookies or sessions are used
+    optionsSuccessStatus: 200, // For legacy browser support
+  };
 
-  // Connect to the database
-  connectDB();
-  app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    res.header("Access-Control-Allow-Origin", "https://nem.bio:4000");
-    res.header(
-      "Access-Control-Allow-Origin",
-      "http://http://192.168.1.74:4000"
-    );
-
-    res.header("Access-Control-Allow-Origin", "http://192.168.0.105:5173:4000");
-    next();
-  });
-
-  app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    res.header("Access-Control-Allow-Origin", "cloudclinic.tech");
-    next();
-  });
-  // Route configurations
-  app.post("/delete-files", s3Deleter);
-  app.use("/api", fileRoutes);
-  app.use("/vendors", voucherRoutes);
-  app.use("/resources", resourceUploaders);
+  // Apply CORS middleware with the consolidated options
+  app.use(cors(corsOptions));
 
   // Uncomment if PDF conversion is enabled
   // app.post("/convert-pdf", handlePdfConversion);
-  app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    next();
-  });
-  app.options("*", cors());
-  const corsOptions = {
-    origin: "https:/nem.bio:4000/graphql",
-    credentials: true,
-    optionSuccessStatus: 200,
-  };
 
-  const corsOptions2 = {
-    origin: "https:/nem.bio:4000",
-    credentials: true,
-    optionSuccessStatus: 200,
-  };
-
-  cors({
-    origin: "*",
-    credentials: true,
-  }),
-    app.use(cors(corsOptions));
-  app.use(cors(corsOptions2));
-
+  // Enable pre-flight requests for all routes
+  app.options("*", cors(corsOptions));
   app.use(
     bodyParser.urlencoded({
       extended: true,
@@ -172,6 +140,11 @@ const startServer = async () => {
       next();
     }
   });
+  // Route configurations
+  app.post("/delete-files", s3Deleter);
+  app.use("/api", fileRoutes);
+  app.use("/vendors", voucherRoutes);
+  app.use("/resources", resourceUploaders);
 
   // Load SSL certificate and key for HTTPS in production
   let httpServer;

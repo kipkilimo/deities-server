@@ -167,7 +167,8 @@ export const resourceTypeDefs = gql`
 
   type Query {
     getPublisherLatestExams(userId: String!): [ExamMetaInfo]
-    getCurrentExam(sessionId: String!): ExamMetaInfo
+    getCurrentExam(sessionId: String!, examType: String): ExamMetaInfo
+    getAllMockExams(resourceType: String!): [ExamMetaInfo]
 
     getPublisherLatestTasks(userId: String!): [AssignmentMetaInfo]
     fetchResourceSummaryByRoleAndType: [ResourceSummary!]!

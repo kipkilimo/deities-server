@@ -1,53 +1,59 @@
-import dotenv from "dotenv";
-import nodemailer from "nodemailer";
+import Mailgun from "mailgun.js";
+import formData from "form-data";
 
-dotenv.config();
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: "api",
+  // @ts-ignore
+  key: process.env.MAILGUN_API_KEY,
+  proxy: {
+    protocol: "https",
+    host: "127.0.0.1", // Use your proxy host here
+    port: 4000, // Use your proxy port here
+    auth: {
+      username: process.env.MAILGUN_DOMAIN || "", // Provide username
+      password: process.env.SMTP_PASSWORD, // Provide password
+    },
+  },
+});
 
-interface EmailOptions {
-  to: string;
-  subject: string;
-  html: string;
+export interface EmailOptions {
+  to: string[]; // Recipient's email addresses
+  subject: string; // Subject of the email
+  html: string; // HTML content of the email
   attachments?: {
-    // Keep attachments optional
-    filename: string;
-    content: Buffer | string; // Allow Buffer or string content
-    contentType: string;
-  }[];
+    filename: string; // Name of the file
+    content: Buffer; // Content of the file as Buffer
+    contentType: string; // MIME type of the file
+  }[]; // Optional attachments
 }
 
-async function sendEmail(options: EmailOptions): Promise<void> {
+export const sendEmail = async (options: EmailOptions): Promise<any> => {
   const { to, subject, html, attachments } = options;
 
-  // Gmail specific configuration
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    secure: false, // Set to true if using TLS
-    auth: {
-      user: process.env.GMAIL_ADDRR,
-      pass: process.env.GMAIL_PASS,
-    },
-  });
-
-  const mailOptions: nodemailer.SendMailOptions = {
-    from: "noreply@opallearning.com",
-    to,
-    subject,
-    html,
-    attachments, // This will include attachments if provided, or be undefined otherwise
+  const messageData = {
+    from: `Sender Name <${process.env.FROM_NAME}>`, // Adjust sender name and address
+    to: to, // The recipient(s)
+    subject: subject,
+    html: html,
+    attachment: attachments
+      ? attachments.map((att) => ({
+          data: att.content,
+          filename: att.filename,
+          contentType: att.contentType,
+        }))
+      : undefined,
   };
 
   try {
-    const auth = {
-      user: process.env.GMAIL_ADDR,
-      pass: process.env.GMAIL_PASS,
-    };
-    console.log({ loginEmail: JSON.stringify(auth) });
-    await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully");
+    console.log({ host: process.env.SMTP_HOST || "", messageData });
+    const response = await mg.messages.create(
+      process.env.SMTP_HOST || "",
+      messageData
+    );
+    return response;
   } catch (error) {
-    console.error("Error sending email:", error);
-    // Handle error, e.g., retry, log, notify
+    console.error("Failed to send email:", error);
+    throw error; // Propagate the error
   }
-}
-
-export { sendEmail, EmailOptions };
+};
