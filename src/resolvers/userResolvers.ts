@@ -12,7 +12,7 @@ import { generateUniqueCode } from "../utils/identifier_generator";
 import mongoose from "mongoose";
 
 let redirectUrl;
-// CLIENT_URL=${redirectUrl}/
+// CLIENT_URL=${redirectUrl}
 
 // CLIENT_DEV_URL=http://localhost:5173/
 if (process.env.NODE_ENV === "production") {
@@ -274,7 +274,7 @@ const userResolver = {
       <h1 style="color: #ffffff;">Welcome to NEMBio Learning, ${user.personalInfo.fullName}!</h1>
       <p style="font-size: 16px;">Thank you for signing up. To activate your account and access the platform, please click on the link below:</p>
       <p style="text-align: center; margin: 20px 0;">
-        <a href="${redirectUrl}/auth/activate?token=${user.personalInfo.activationToken}" 
+        <a href="${redirectUrl}auth/activate?token=${user.personalInfo.activationToken}" 
            style="background-color: #ffffff; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
            Activate Your Account
         </a>
@@ -336,7 +336,7 @@ const userResolver = {
     <!-- Email Content -->
            <h1>Welcome to  NEMBio Learning, ${user.personalInfo.fullName}!</h1>
           <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
-          <a href="${redirectUrl}/auth/activate?token=${activationToken}">Activate Your Account</a>
+          <a href="${redirectUrl}auth/activate?token=${activationToken}">Activate Your Account</a>
           <p>Once activated, you can log in to your account and start using  NEMBio Learning.</p>
 
     <!-- Footer with Address -->
@@ -403,7 +403,7 @@ const userResolver = {
     <!-- Email Content -->
            <h1>Welcome to  NEMBio Learning, ${user.personalInfo.fullName}!</h1>
           <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
-          <a href="${redirectUrl}/auth/activate?token=${activationToken}">Activate Your Account</a>
+          <a href="${redirectUrl}auth/activate?token=${activationToken}">Activate Your Account</a>
           <p>Once activated, you can log in to your account and start using  NEMBio Learning.</p>
 
     <!-- Footer with Address -->
@@ -472,7 +472,7 @@ const userResolver = {
     <!-- Email Content -->
                     <h1>Welcome to  NEMBio Learning, ${user.personalInfo.fullName}!</h1>
           <p>Thank you for signing up. To activate your account and access all the features, please click on the link below:</p>
-          <a href="${redirectUrl}/auth/activate?token=${newActivationToken}">Activate Your Account</a>
+          <a href="${redirectUrl}auth/activate?token=${newActivationToken}">Activate Your Account</a>
           <p>Once activated, you can log in to your account and start using  NEMBio Learning.</p>
 
     <!-- Footer with Address -->
@@ -616,7 +616,7 @@ const userResolver = {
                 <h1>Password reset request, ${user.personalInfo.fullName}!</h1>
         <p>A password reset request has been made on your  NEMBioLearning account.</p>
         <p>To reset your password and access all the features, please click on the link below:</p>
-        <a href="${redirectUrl}/auth/reset?token=${activationToken}">Reset Password</a>
+        <a href="${redirectUrl}auth/reset?token=${activationToken}">Reset Password</a>
         <p>Once reset, you can log in to your account and start using  NEMBio Learning again.</p>
     <!-- Footer with Address -->
     <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #777;">
