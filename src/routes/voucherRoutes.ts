@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import pdf from "html-pdf-node";
 import QRCode from "qrcode";
 import dotenv from "dotenv";
-import { sendEmail, EmailOptions } from "../utils/emailHandler"; // Adjust the path as needed
+import { sendEmail, EmailOptions } from "../utils/emailHandler"; // Adjust import path as needed
 import Vendor from "../models/Vendor"; // Import your mongoose model
 import cors from "cors";
 
@@ -157,6 +157,7 @@ export const sendVouchersToEmails = async (emailList: string[]) => {
     const pdfBuffer = await generatePdfBuffer(voucherHTML);
 
     const emailOptions: EmailOptions = {
+      // @ts-ignore
       to: [email],
       subject: "Your NEMBio Voucher",
       html: "<h3>Please find your exclusive NEMBio voucher attached.</h3>",
@@ -164,6 +165,7 @@ export const sendVouchersToEmails = async (emailList: string[]) => {
         {
           filename: "voucher.pdf",
           content: pdfBuffer,
+          // @ts-ignore
           contentType: "application/pdf",
         },
       ],

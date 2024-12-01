@@ -23,7 +23,7 @@ cron.schedule("*\/15 * * * * *", async () => {
       }
     );
 
-    console.log(`Updated ${result.modifiedCount} users.`); // Use modifiedCount for the count of updated documents
+    // console.log(`Updated ${result.modifiedCount} users.`); // Use modifiedCount for the count of updated documents
   } catch (err) {
     console.error("Error updating users:", err);
   }
@@ -46,7 +46,7 @@ cron.schedule("*\/15 * * * * *", async () => {
       }
     );
 
-    console.log(`Updated ${result.modifiedCount} users.`); // Use modifiedCount for the count of updated documents
+    // console.log(`Updated ${result.modifiedCount} users.`); // Use modifiedCount for the count of updated documents
   } catch (err) {
     console.error("Error updating users:", err);
   }
@@ -65,7 +65,7 @@ cron.schedule("*\/15 * * * * *", async () => {
       }
     );
 
-    console.log(`Updated ${result.modifiedCount} items.`); // Use modifiedCount for a better understanding of the result
+    // console.log(`Updated ${result.modifiedCount} items.`); // Use modifiedCount for a better understanding of the result
   } catch (err) {
     console.error("Error updating items:", err);
   }
@@ -87,7 +87,7 @@ cron.schedule("*\/15 * * * * *", async () => {
       }
     );
 
-    console.log(`Updated ${result.modifiedCount} items.`); // Use modifiedCount for a better understanding of the result
+    // console.log(`Updated ${result.modifiedCount} items.`); // Use modifiedCount for a better understanding of the result
   } catch (err) {
     console.error("Error updating items:", err);
   }
@@ -107,7 +107,7 @@ cron.schedule("*\/15 * * * * *", async () => {
       }
     );
 
-    console.log(`Updated ${result.modifiedCount} items.`); // Use modifiedCount for a better understanding of the result
+    // console.log(`Updated ${result.modifiedCount} items.`); // Use modifiedCount for a better understanding of the result
   } catch (err) {
     console.error("Error updating items:", err);
   }
@@ -115,7 +115,7 @@ cron.schedule("*\/15 * * * * *", async () => {
 cron.schedule("*\/15 * * * * *", async () => {
   try {
     const result = await Resource.deleteMany({ contentType: "TASK" });
-    console.log(`Deleted ${result.deletedCount} items.`);
+    // console.log(`Deleted ${result.deletedCount} items.`);
   } catch (err) {
     console.error("Error deleting items:", err);
   }
@@ -130,7 +130,7 @@ cron.schedule("*\/15 * * * * *", async () => {
       { $set: { participants: "[]" } } // Update participants field
     );
 
-    console.log(`Updated ${JSON.stringify(result)} items.`);
+    // console.log(`Updated ${JSON.stringify(result)} items.`);
   } catch (err) {
     console.error("Error updating items:", err);
   }
@@ -153,6 +153,7 @@ cron.schedule("*\/15 * * * * *", async () => {
 // Define the type for the arguments expected in the createResource resolver
 // Define the input type for the resolver
 interface IGetResourcesArgs {
+  [x: string]: any;
   subject?: string;
   topic?: string;
   title?: string;
@@ -163,6 +164,39 @@ interface IGetResourcesArgs {
 }
 const resourceResolver = {
   Mutation: {
+    //     togglePublicationStatus(
+    //   resourceStatus: String!
+    //   resourceId: String!
+    // ): Resource!
+    async togglePublicationStatus(
+      _: any,
+      {
+        resourceId,
+        resourceStatus,
+      }: { resourceId: string; resourceStatus: string }
+    ) {
+      try {
+        // Find the resource by ID
+        const resource = await Resource.findById(resourceId);
+
+        // Check if resource exists
+        if (!resource) {
+          throw new Error("Resource not found");
+        }
+
+        // Update the publication status based on resourceStatus
+        resource.isPublished = resourceStatus === "Publish";
+
+        // Save the updated resource
+        await resource.save();
+
+        // Return the updated resource document
+        return resource;
+      } catch (error) {
+        console.error("Error updating resource:", error);
+        throw new Error("Failed to update resource");
+      }
+    },
     async createResource(
       _: any,
       {
@@ -736,7 +770,7 @@ const resourceResolver = {
           .filter((exam) => exam !== null); // Remove null entries
 
         // Return the latest exams or null if none found
-        console.log({ exams });
+        // console.log({ exams });
         return exams;
       } catch (error) {
         console.error("Error fetching resources:", error);
@@ -806,7 +840,7 @@ const resourceResolver = {
         return exam;
       });
       // Return the latest exams or null if none found
-      // console.log({ exams });
+      // // console.log({ exams });
       return exams;
     },
     async getPublisherLatestPoll(_: any, { userId }: { userId: String }) {
@@ -984,15 +1018,92 @@ const resourceResolver = {
         throw new Error("Failed to fetch resources");
       }
     },
+
     async getAllResources(_: any, args: IGetResourcesArgs) {
       try {
         // Replace the following with actual database fetching logic
-        const resources = await Resource.find();
+        const resources = await Resource.find(
+          { isPublished: false },
+          {
+            id: 1,
+            contentType: 1,
+            title: 1,
+            viewsNumber: 1,
+            likesNumber: 1,
+            sharesNumber: 1,
+            subject: 1,
+            topic: 1,
+            averageRating: 1,
+            createdAt: 1,
+            isPublished: 1,
+          }
+        ).populate({
+          path: "createdBy",
+          model: "User",
+          select: {
+            id: 1,
+            personalInfo: {
+              fullName: 1,
+              email: 1,
+            },
+            role: 1,
+          },
+        });
         return resources;
       } catch (error) {
         throw new Error("Failed to fetch resources");
       }
     },
+
+    // getAllTopicResourcesByTopic(resourceTopic: String): [Resource!]!
+    async getAllTopicResourcesByTopic(_: any, args: IGetResourcesArgs) {
+      try {
+        // Extract relevant parameters
+        const { resourceTitle } = args;
+        const types = [
+          "AUDIO",
+          "VIDEO",
+          "DOCUMENT",
+          "MIXED",
+          "TEXT",
+          "PRESENTATION",
+          "ARTICLE",
+          "TASK",
+          "IMAGES",
+        ];
+
+        // Fetch the resources from the database based on the filter
+        const resources = await Resource.find(
+          {
+            topic: resourceTitle,
+            isPublished: true,
+            contentType: { $in: types }, // Match only content types in the provided array
+          },
+          {
+            id: 1,
+            contentType: 1,
+            title: 1,
+            viewsNumber: 1,
+            likesNumber: 1,
+            sharesNumber: 1,
+            subject: 1,
+            topic: 1,
+            coverImage: 1,
+            averageRating: 1,
+            createdAt: 1,
+            keywords: 1,
+            description: 1,
+          } // Select only specified fields
+        );
+
+        // Return the filtered resources
+        return resources;
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+        throw new Error("Failed to fetch resources");
+      }
+    },
+
     async getAllSpecificTypeResources(
       _: unknown,
       { resourceType }: { resourceType: string }
@@ -1188,5 +1299,4 @@ const resourceResolver = {
   },
 };
 
-export default resourceResolver; 
-
+export default resourceResolver;

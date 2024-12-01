@@ -7,7 +7,7 @@ import Resource from "../models/Resource";
 
 //   { path: "discussion_group", model: "" },
 // { path: "department", model: "" },
-import { sendEmail } from "../utils/emailHandler"; // Adjust import path as needed
+import { sendEmail, EmailOptions } from "../utils/emailHandler"; // Adjust import path as needed
 import { generateUniqueCode } from "../utils/identifier_generator";
 import mongoose from "mongoose";
 
@@ -196,7 +196,7 @@ const userResolver = {
           throw new Error("User not found");
         }
 
-        console.log({ getCurrentUser: user });
+        // console.log({ getCurrentUser: user });
         return user;
       } catch (error) {
         // Handle errors
@@ -265,17 +265,17 @@ const userResolver = {
       const emailBody = `
   <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+    <div style="background-color: #f3f9fb; padding: 20px; text-align: center;">
       <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
     <!-- Email Content -->
     <div style="padding: 20px;">
-      <h1 style="color: #ffffff;">Welcome to NEMBio Learning, ${user.personalInfo.fullName}!</h1>
+      <h1 style="color: #f3f9fb;">Welcome to NEMBio Learning, ${user.personalInfo.fullName}!</h1>
       <p style="font-size: 16px;">Thank you for signing up. To activate your account and access the platform, please click on the link below:</p>
       <p style="text-align: center; margin: 20px 0;">
         <a href="${redirectUrl}auth/activate?token=${user.personalInfo.activationToken}" 
-           style="background-color: #ffffff; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+           style="background-color: #f3f9fb; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
            Activate Your Account
         </a>
       </p>
@@ -299,6 +299,7 @@ const userResolver = {
         html: emailBody,
       };
 
+      // @ts-ignore
       await sendEmail(emailOptions);
 
       return user;
@@ -329,7 +330,7 @@ const userResolver = {
         const emailBody = `
           <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+    <div style="background-color: #f3f9fb; padding: 20px; text-align: center;">
       <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
@@ -357,6 +358,7 @@ const userResolver = {
           html: emailBody,
         };
 
+        // @ts-ignore
         await sendEmail(emailOptions);
         user.personalInfo.activationToken = activationToken;
         user.personalInfo.resetToken = activationToken;
@@ -396,7 +398,7 @@ const userResolver = {
         const emailBody = `
           <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+    <div style="background-color: #f3f9fb; padding: 20px; text-align: center;">
       <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
@@ -424,6 +426,7 @@ const userResolver = {
           html: emailBody,
         };
 
+        // @ts-ignore
         await sendEmail(emailOptions);
         user.personalInfo.activationToken = activationToken;
         user.personalInfo.resetToken = activationToken;
@@ -465,7 +468,7 @@ const userResolver = {
         const emailBody = `
         <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+    <div style="background-color: #f3f9fb; padding: 20px; text-align: center;">
       <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
@@ -493,6 +496,7 @@ const userResolver = {
           html: emailBody,
         };
 
+        // @ts-ignore
         await sendEmail(emailOptions);
         user.personalInfo.activationToken = newActivationToken;
         user.personalInfo.resetToken = newActivationToken;
@@ -558,7 +562,7 @@ const userResolver = {
       const emailBody = `
 <div style="font-family: Arial, sans-serif; color: #333;">
   <!-- Top Logo Stripe -->
-  <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+  <div style="background-color: #f3f9fb; padding: 20px; text-align: center;">
     <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
   </div>
 
@@ -587,6 +591,7 @@ const userResolver = {
         html: emailBody,
       };
 
+      // @ts-ignore
       await sendEmail(emailOptions);
       user.personalInfo.activationToken = activationToken;
       user.personalInfo.resetToken = activationToken;
@@ -608,7 +613,7 @@ const userResolver = {
       const emailBody = `
         <div style="font-family: Arial, sans-serif; color: #333;">
     <!-- Top Logo Stripe -->
-    <div style="background-color: #ffffff; padding: 20px; text-align: center;">
+    <div style="background-color: #f3f9fb; padding: 20px; text-align: center;">
       <img src="https://a2z-v0.s3.eu-central-1.amazonaws.com/Screenshot+from+2024-10-22+16-31-16.png" alt="NEMBio Learning Logo" style="width: 240px;">
     </div>
 
@@ -635,6 +640,7 @@ const userResolver = {
         html: emailBody,
       };
 
+      // @ts-ignore
       await sendEmail(emailOptions);
       user.personalInfo.activationToken = activationToken;
       user.personalInfo.resetToken = activationToken;

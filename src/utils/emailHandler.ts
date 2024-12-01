@@ -1,59 +1,64 @@
-import Mailgun from "mailgun.js";
-import formData from "form-data";
+// emailService.ts
+import { readFileSync } from "fs";
+import nodemailer from "nodemailer";
+import { MailtrapTransport } from "mailtrap";
 
-const mailgun = new Mailgun(formData);
-const mg = mailgun.client({
-  username: "api",
-  // @ts-ignore
-  key: process.env.MAILGUN_API_KEY,
-  proxy: {
-    protocol: "https",
-    host: "127.0.0.1", // Use your proxy host here
-    port: 4000, // Use your proxy port here
-    auth: {
-      username: process.env.MAILGUN_DOMAIN || "", // Provide username
-      password: process.env.SMTP_PASSWORD, // Provide password
-    },
-  },
-});
-
+// Define the interface for email options
 export interface EmailOptions {
-  to: string[]; // Recipient's email addresses
-  subject: string; // Subject of the email
-  html: string; // HTML content of the email
+  to: string;
+  from: string;
+  subject: string;
+  text: string;
+  html: string;
   attachments?: {
-    filename: string; // Name of the file
-    content: Buffer; // Content of the file as Buffer
-    contentType: string; // MIME type of the file
-  }[]; // Optional attachments
+    filename: string;
+    content: Buffer;
+    cid: string;
+    contentDisposition: string;
+  }[];
 }
 
-export const sendEmail = async (options: EmailOptions): Promise<any> => {
-  const { to, subject, html, attachments } = options;
+// Define constants for Mailtrap API Token and email addresses
+const TOKEN = process.env.MAILTRAP_TOKEN!;
+const SENDER_EMAIL = "info@nem.bio";
 
-  const messageData = {
-    from: `Sender Name <${process.env.FROM_NAME}>`, // Adjust sender name and address
-    to: to, // The recipient(s)
-    subject: subject,
-    html: html,
-    attachment: attachments
-      ? attachments.map((att) => ({
-          data: att.content,
-          filename: att.filename,
-          contentType: att.contentType,
-        }))
-      : undefined,
-  };
+// Create a transport using Mailtrap and Nodemailer
+const transport = nodemailer.createTransport(
+  MailtrapTransport({
+    token: TOKEN,
+  })
+);
 
+// Function to send the email
+export async function sendEmail({
+  to,
+  from,
+  subject,
+  text,
+  html,
+  attachments,
+}: EmailOptions): Promise<void> {
   try {
-    console.log({ host: process.env.SMTP_HOST || "", messageData });
-    const response = await mg.messages.create(
-      process.env.SMTP_HOST || "",
-      messageData
-    );
-    return response;
+    const mailOptions = {
+      text,
+      to: {
+        address: to,
+        name: "Recipient Name",
+      },
+      from: {
+        address: SENDER_EMAIL,
+        name: "NEMBio Communication",
+      },
+      subject,
+      html,
+      attachments: attachments || [],
+    };
+
+    // Send the email
+    // @ts-ignore
+    const info = await transport.sendMail(mailOptions);
+    console.log("Email sent:", info);
   } catch (error) {
-    console.error("Failed to send email:", error);
-    throw error; // Propagate the error
+    console.error("Error sending email:", error);
   }
-};
+}

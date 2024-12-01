@@ -28,7 +28,7 @@ export const paymentTypeDefs = gql`
       discussionGroupId: String
       paidAmount: String!
       transactionEntity: String
-      paymentPhoneNumber: String
+      paymentPhoneNumber: String!
       transactionReferenceNumber: String
       paymentMethod: String
       createdAt: String
@@ -43,6 +43,31 @@ export const paymentTypeDefs = gql`
       transactionEntity: String!
       paymentPhoneNumber: String
       transactionReferenceNumber: String
+      paymentMethod: String
+      createdAt: String
+    ): Payment
+
+    # Mutation for making access payment via MPESA
+    processMpesaDonation(
+      userId: String
+      departmentId: String
+      discussionGroupId: String
+      paidAmount: String!
+      transactionEntity: String
+      paymentPhoneNumber: String!
+      transactionReferenceNumber: String
+      paymentMethod: String
+      createdAt: String
+    ): Payment
+    # Mutation for making access payment via PayPal
+    processPaypalDonation(
+      userId: String
+      paidAmount: String!
+      departmentId: String
+      discussionGroupId: String
+      transactionEntity: String
+      paymentPhoneNumber: String
+      transactionReferenceNumber: String!
       paymentMethod: String
       createdAt: String
     ): Payment

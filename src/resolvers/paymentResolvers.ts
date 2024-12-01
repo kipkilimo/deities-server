@@ -168,6 +168,150 @@ const resolvers = {
         throw new Error(`Failed to waive access fee: ${error}`);
       }
     },
+    // processMpesaDonation,processPaypalDonation
+    processMpesaDonation: async (
+      _: unknown,
+      args: {
+        userId: string;
+        transactionEntity: string;
+        paymentPhoneNumber: string;
+        paidAmount: string;
+        departmentId: string;
+        discussionGroupId: string;
+      },
+      context: Context
+    ): Promise<Payment> => {
+      try {
+        console.log({
+          userId: args.userId,
+          departmentId: args.departmentId,
+          transactionEntity: args.transactionEntity,
+          paidAmount: args.paidAmount,
+          paymentPhoneNumber: args.paymentPhoneNumber,
+        });
+
+        const activatingUser = await User.findById(args.userId);
+
+        const publisherName = `${
+          activatingUser ? activatingUser.personalInfo.fullName : "TBD"
+        }`;
+        const paymentAccount = `NEMBio DONATION | Donor: ${publisherName}`;
+        const paidAmount = Number(args.paidAmount);
+        const dollarRate = Number(process.env.DOLLAR_RATE) || 1;
+        const usdValue = paidAmount / dollarRate;
+        const totalPurchasedCredits = calculateCredits(usdValue);
+
+        // MPESA initialization
+        const mpesaApi = new Mpesa({
+          consumerKey: process.env.MPESA_CONSUMER_KEY!,
+          consumerSecret: process.env.MPESA_CONSUMER_SECRET!,
+          // @ts-ignore
+          environment: "production",
+          shortCode: "4073131",
+          initiatorName: "County Square",
+          lipaNaMpesaShortCode: "4073131",
+          lipaNaMpesaShortPass: process.env.MPESA_PAYMENT_PASSKEY!,
+          securityCredential: process.env.MPESA_SECURITY_CREDENTIAL!,
+        });
+
+        // Payment initiation
+        const paymentObjectBody = await mpesaApi.lipaNaMpesaOnline(
+          args.paymentPhoneNumber,
+          paidAmount,
+          "https://nem.bio/success",
+          paymentAccount
+        );
+
+        const delay = (ms: number) =>
+          new Promise((resolve) => setTimeout(resolve, ms));
+
+        const delayedLogic = async (): Promise<Payment> => {
+          await delay(18000);
+          const paymentResponse = await mpesaApi.lipaNaMpesaQuery(
+            paymentObjectBody.data.CheckoutRequestID
+          );
+
+          if (paymentResponse.data.ResultCode !== "0") {
+            throw new Error("Payment did not complete successfully.");
+          }
+
+          const newPayment = new Payment({
+            userId: args.userId,
+            paidAmount,
+            departmentId: "DONATION",
+            discussionGroupId: args.discussionGroupId,
+            transactionEntity: args.transactionEntity,
+            paymentPhoneNumber: args.paymentPhoneNumber,
+            transactionReferenceNumber: generateUniqueCode(12).toUpperCase(),
+            paymentMethod: "MPESA",
+            createdAt: DateTime.now().toISO(),
+          });
+
+          return await newPayment.save();
+        };
+
+        const result = await delayedLogic();
+
+        return result;
+      } catch (error) {
+        console.error(`Error in publicationCreditsPaymentViaMpesa: ${error}`);
+        throw new Error(
+          `Payment process did not complete successfully: ${error}`
+        );
+      }
+    },
+
+    // Resolver for PayPal payment
+    processPaypalDonation: async (
+      _: unknown,
+      args: {
+        userId: string;
+        transactionEntity: string;
+        paymentPhoneNumber: string;
+        paidAmount: string;
+        departmentId: string;
+        discussionGroupId: string;
+      }
+    ): Promise<Payment> => {
+      try {
+        console.log({
+          userId: args.userId,
+          departmentId: args.departmentId,
+          transactionEntity: args.transactionEntity,
+          paidAmount: args.paidAmount,
+          transactionReferenceNumber: "MOCK_PAYPAL",
+        });
+        const usdValue = Number(args.paidAmount);
+        const totalPurchasedCredits = calculateCredits(usdValue);
+
+        const activatingUser = await User.findById(args.userId);
+        const publisherName = `${
+          activatingUser ? activatingUser.personalInfo.fullName : "Anonymous"
+        }`;
+        const paymentAccount = `NEMBio DONATION | Donor: ${publisherName}`;
+
+        const receiptNumber = generateUniqueCode(12).toUpperCase();
+        const newPayment = new Payment({
+          userId: args.userId,
+          paidAmount: args.paidAmount,
+          departmentId: "DONATION",
+          discussionGroupId: args.discussionGroupId,
+          transactionEntity: args.transactionEntity,
+          paymentPhoneNumber: args.paymentPhoneNumber,
+          transactionReferenceNumber: receiptNumber,
+          paymentMethod: "PAYPAL",
+          createdAt: DateTime.now().toISO(),
+        });
+
+        const result = await newPayment.save();
+
+        return result;
+      } catch (error) {
+        throw new Error(
+          `Payment process did not complete successfully: ${error}`
+        );
+      }
+    },
     // Resolver for making an MPESA payment
     publicationCreditsPaymentViaMpesa: async (
       _: unknown,

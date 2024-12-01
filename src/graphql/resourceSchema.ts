@@ -18,7 +18,7 @@ export const resourceTypeDefs = gql`
     POSTER
     MODEL
     ARTICLE
-    JOB
+    OPPORTUNITY
     TASK
     COMPUTING
   }
@@ -166,6 +166,8 @@ export const resourceTypeDefs = gql`
   }
 
   type Query {
+    getAllTopicResourcesByTopic(resourceTitle: String): [Resource!]!
+
     getPublisherLatestExams(userId: String!): [ExamMetaInfo]
     getCurrentExam(sessionId: String!, examType: String): ExamMetaInfo
     getAllMockExams(resourceType: String!): [ExamMetaInfo]
@@ -205,6 +207,11 @@ export const resourceTypeDefs = gql`
       keywords: String
       createdBy: ID!
     ): Resource
+
+    togglePublicationStatus(
+      resourceStatus: String!
+      resourceId: String!
+    ): Resource!
     addResourceFormContent(resourceDetails: String!): Resource!
 
     updateResource(

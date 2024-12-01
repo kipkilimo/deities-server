@@ -17,7 +17,7 @@ enum ResourceType {
   MODEL = "MODEL",
   POSTER = "POSTER",
   ARTICLE = "ARTICLE",
-  JOB = "JOB",
+  OPPORTUNITY = "OPPORTUNITY",
   TASK = "TASK",
   COMPUTING = "COMPUTING",
 }
@@ -38,7 +38,7 @@ enum ResourceType {
   "MODEL": 10,
   "POSTER": 4,
   "ARTICLE": 5,
-  "JOB": 200,
+  "OPPORTUNITY": 200,
   "TASK": 5,
   "COMPUTING": 20
 }
